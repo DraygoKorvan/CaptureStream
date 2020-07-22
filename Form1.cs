@@ -1,6 +1,8 @@
 ﻿using NAudio;
 using NAudio.CoreAudioApi;
+using NAudio.MediaFoundation;
 using NAudio.Wave;
+using NAudio.Wave.Compression;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -39,7 +41,8 @@ namespace CaptureStream
 		long tickremainder = 0;
 		long framerateadd = 0;
 		WasapiLoopbackCapture audio;
-		WaveFormat format = new WaveFormat(44100, 32, 1);
+		WaveFormat format = WaveFormat.CreateCustomFormat(WaveFormatEncoding.WindowsMediaAudio, 44100, 1, 176400, 4, 16);
+
 		WaveFormat sourceFormat;
 		long framerate = 1;
 		int playbackframerate = 20;
@@ -48,10 +51,13 @@ namespace CaptureStream
 		private MMDevice device;
 		private WasapiOut blankplayer;
 		private SilenceProvider silence;
+		private AcmStream resamplePCM;
+
 
 		private streamheader header;
-
+		private audioheader aheader;
 		long frameratemonitor = 0;
+		long audiolengthmonitor = 0;
 
 		public CaptureStreamForm()
 		{
@@ -76,6 +82,12 @@ namespace CaptureStream
 
 			audio = new WasapiLoopbackCapture();
 			sourceFormat = audio.WaveFormat;
+			//resamplePCM = new WaveFloatTo16Provider(new WaveProvider);
+			var buffer = new byte[16];
+
+
+			//resamplePCM = new AcmStream(WaveFormat.CreateCustomFormat(WaveFormatEncoding.Pcm, 44100, 1, 176400, 4, 16), format);
+			MediaFoundationApi.Startup();
 			blankplayer = new WasapiOut();
 			silence = new SilenceProvider(sourceFormat);
 			blankplayer.Init(silence);
@@ -88,23 +100,90 @@ namespace CaptureStream
 			StartBackgroundWorker();
 
 		}
+		bool needaudioheader = false;
+		public struct audioheader
+		{
+			public int SampleRate;
+			public int Channels;
+			public int BitsPerSample;
+			public int AverageBytesPerSecond;
+
+			public byte[] getBytes()
+			{
+				var retval = new byte[sizeof(int) * 4];
+				BitConverter.GetBytes(SampleRate).CopyTo(retval, 0);
+				BitConverter.GetBytes(Channels).CopyTo(retval, sizeof(int));
+				BitConverter.GetBytes(BitsPerSample).CopyTo(retval, sizeof(int) * 2);
+				BitConverter.GetBytes(AverageBytesPerSecond).CopyTo(retval, sizeof(int) * 3);
+				return retval;
+
+			}
+		}
 
 		private void Audio_RecordingStopped(object sender, StoppedEventArgs e)
 		{
 			outAudio.Close();
 			//outAudio = new BinaryWriter(new FileStream("mydataA2", FileMode.Create));
 		}
-
+		private byte[] StereoToMono(byte[] input)
+		{
+			byte[] output = new byte[input.Length / 2];
+			int outputIndex = 0;
+			for (int n = 0; n < input.Length; n += 4)
+			{
+				// copy in the first 16 bit sample
+				output[outputIndex++] = input[n];
+				output[outputIndex++] = input[n + 1];
+			}
+			return output;
+		}
 		private void Audio_DataAvailable(object sender, WaveInEventArgs e)
 		{
 			if (e.BytesRecorded == 0)
 				return;
 			var buffer = e.Buffer;
+		
+			//ok lets write to a temp file, read it to conver.
+			using (var str = new RawSourceWaveStream(buffer, 0, e.BytesRecorded, audio.WaveFormat))
+			{
+				var six = new WaveFloatTo16Provider(str);
+				six.Read(buffer, 0, e.BytesRecorded);
+				
+				using(var transstream = new RawSourceWaveStream(buffer, 0, e.BytesRecorded, six.WaveFormat))
+				{
+					var format = new AdpcmWaveFormat(44100, 2);
+					var conv = new WaveFormatConversionStream(format, transstream);
+					var outbuffer = new byte[conv.Length];
 
-			outAudio.Write(buffer);
-			//text_encoding.Text = sourceFormat.Encoding.ToString();
+					conv.Read(outbuffer, 0, (int)conv.Length);
+					
+					//var test = new AcmStream(format, transstream.WaveFormat);
+					//var newstream = WaveFormatConversionStream.CreatePcmStream(transstream);
 
 
+					
+					
+					//var outbuffer = new byte[test.Length];
+
+					//test.Read(outbuffer, 0, (int)test.Length);
+
+					if (needaudioheader)
+					{
+						needaudioheader = false;
+						var header = new audioheader();
+						header.BitsPerSample = conv.WaveFormat.BitsPerSample;
+						header.SampleRate = conv.WaveFormat.SampleRate;
+						header.AverageBytesPerSecond = conv.WaveFormat.AverageBytesPerSecond;
+						header.Channels = conv.WaveFormat.Channels;
+						outAudio.Write(header.getBytes());
+					}
+					outAudio.Write(outbuffer, 0, (int)conv.Length);
+					audiolengthmonitor = conv.Length;
+				}
+
+
+
+			}
 		}
 		public struct streamheader
 		{
@@ -145,6 +224,7 @@ namespace CaptureStream
 		{
 			Preview.Refresh();
 			FrameTimeMonitor.Text = string.Format("{0:N0} ms", (frameratemonitor / (double)Stopwatch.Frequency) * 1000);
+			AudioLength.Text = string.Format("{0:N0}", audiolengthmonitor.ToString());
 		}
 		public delegate void RefreshCallback();
 		byte[] outcolor = new byte[3];
@@ -153,7 +233,7 @@ namespace CaptureStream
 		bool wait = false;
 		void UpdateStreaming()
 		{
-			while(running)
+			while(true)
 			{
 
 				if(recording)
@@ -165,6 +245,7 @@ namespace CaptureStream
 						tick = 0;
 
 						blankplayer.Play();
+						needaudioheader = true;
 						audio.StartRecording();
 						outAudio = new BinaryWriter(new FileStream("mydataA", FileMode.Create));
 						outFile = new BinaryWriter(new FileStream("mydata", FileMode.Create));
@@ -236,6 +317,8 @@ namespace CaptureStream
 
 						
 					}
+					if (!running)
+						return;
 				}
 				Thread.Sleep(0);
 			}
@@ -353,6 +436,8 @@ namespace CaptureStream
 		private void onClosing(object sender, FormClosingEventArgs e)
 		{
 			running = false;
+			recording = false;
+			MediaFoundationApi.Shutdown();
 		}
 
 		private void UpdateResY(object sender, EventArgs e)

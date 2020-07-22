@@ -45,6 +45,7 @@
 			this.Preview = new System.Windows.Forms.PictureBox();
 			this.ImageUpdater = new System.ComponentModel.BackgroundWorker();
 			this.FrameTimeMonitor = new System.Windows.Forms.Label();
+			this.AudioLength = new System.Windows.Forms.Label();
 			((System.ComponentModel.ISupportInitialize)(this.Preview)).BeginInit();
 			this.SuspendLayout();
 			// 
@@ -190,11 +191,21 @@
 			this.FrameTimeMonitor.TabIndex = 15;
 			this.FrameTimeMonitor.Text = "rec";
 			// 
+			// AudioLength
+			// 
+			this.AudioLength.AutoSize = true;
+			this.AudioLength.Location = new System.Drawing.Point(681, 270);
+			this.AudioLength.Name = "AudioLength";
+			this.AudioLength.Size = new System.Drawing.Size(39, 13);
+			this.AudioLength.TabIndex = 16;
+			this.AudioLength.Text = "audlen";
+			// 
 			// CaptureStreamForm
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
 			this.ClientSize = new System.Drawing.Size(800, 450);
+			this.Controls.Add(this.AudioLength);
 			this.Controls.Add(this.FrameTimeMonitor);
 			this.Controls.Add(this.Preview);
 			this.Controls.Add(this.text_encoding);
@@ -238,6 +249,7 @@
 		private System.Windows.Forms.PictureBox Preview;
 		private System.ComponentModel.BackgroundWorker ImageUpdater;
 		private System.Windows.Forms.Label FrameTimeMonitor;
+		private System.Windows.Forms.Label AudioLength;
 	}
 }
 
