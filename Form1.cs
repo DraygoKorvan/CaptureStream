@@ -107,16 +107,16 @@ namespace CaptureStream
 		}
 		public struct streamheader
 		{
-			public uint width;
-			public uint height;
-			public uint stride;
+			public int width;
+			public int height;
+			public int stride;
 
 			public byte[] getBytes()
 			{
 				var retval = new byte[sizeof(int) * 3];
 				BitConverter.GetBytes(width).CopyTo(retval, 0);
 				BitConverter.GetBytes(height).CopyTo(retval, sizeof(int));
-				BitConverter.GetBytes(stride).CopyTo(retval, sizeof(int));
+				BitConverter.GetBytes(stride).CopyTo(retval, sizeof(int)*2);
 				return retval;
 
 			}
@@ -184,14 +184,14 @@ namespace CaptureStream
 						using (Graphics g = Graphics.FromImage(bmpreader))
 						{
 							g.CopyFromScreen(Rectangle.Location, Point.Empty, Rectangle.Size);
-							using (Graphics cv = Graphics.FromImage(bmpbuffer))
-							{
-								cv.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.NearestNeighbor;
-								cv.DrawImage(bmpreader, 0, 0, bmpbuffer.Width, bmpbuffer.Height);
-							}
+
 						}
-							
-						
+						using (Graphics cv = Graphics.FromImage(bmpbuffer))
+						{
+							cv.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.NearestNeighbor;
+							cv.DrawImage(bmpreader, 0, 0, bmpbuffer.Width, bmpbuffer.Height);
+						}
+
 						System.Drawing.Imaging.BitmapData bmpData = bmpbuffer.LockBits(new Rectangle(0, 0, bmpbuffer.Width, bmpbuffer.Height), System.Drawing.Imaging.ImageLockMode.ReadOnly, bmpbuffer.PixelFormat);
 
 						IntPtr ptr = bmpData.Scan0;
@@ -259,6 +259,7 @@ namespace CaptureStream
 				header.width = bmpData.Width;
 				header.height = bmpData.Height;
 				header.stride = bmpData.Stride;
+				bmpbuffer.UnlockBits(bmpData);
 				frameout = new byte[recordheight * (recordwidth + 2) * 3];
 			}
 				
