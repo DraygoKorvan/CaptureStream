@@ -30,6 +30,8 @@ namespace CaptureStream
 
 		bool recording = false;
 		bool drawcapturebox = false;
+		bool playback = false;
+
 		Pen drawingpen = new Pen(Color.Red);
 		Rectangle Rectangle = new Rectangle(531, 136, 852, 480);
 		int recordheight = 240;
@@ -41,7 +43,7 @@ namespace CaptureStream
 		long tickremainder = 0;
 		long framerateadd = 0;
 		WasapiLoopbackCapture audio;
-		WaveFormat format = WaveFormat.CreateCustomFormat(WaveFormatEncoding.WindowsMediaAudio, 44100, 1, 176400, 4, 16);
+		WaveFormat format = new AdpcmWaveFormat(44100, 2);
 
 		WaveFormat sourceFormat;
 		long framerate = 1;
@@ -92,7 +94,7 @@ namespace CaptureStream
 			silence = new SilenceProvider(sourceFormat);
 			blankplayer.Init(silence);
 
-			text_encoding.Text = sourceFormat.Encoding.ToString();
+			text_encoding.Text = sourceFormat.BitsPerSample.ToString();
 			
 			audio.DataAvailable += Audio_DataAvailable;
 			audio.RecordingStopped += Audio_RecordingStopped;
@@ -117,6 +119,16 @@ namespace CaptureStream
 				BitConverter.GetBytes(AverageBytesPerSecond).CopyTo(retval, sizeof(int) * 3);
 				return retval;
 
+			}
+			public static audioheader getHeader(BinaryReader source)
+			{
+				var data = source.ReadBytes(sizeof(int) * 4);
+				var retval = new audioheader();
+				retval.SampleRate =				BitConverter.ToInt32(data, sizeof(int) * 0);
+				retval.Channels =				BitConverter.ToInt32(data, sizeof(int) * 1);
+				retval.BitsPerSample =			BitConverter.ToInt32(data, sizeof(int) * 2);
+				retval.AverageBytesPerSecond =	BitConverter.ToInt32(data, sizeof(int) * 3);
+				return retval;
 			}
 		}
 
@@ -147,42 +159,22 @@ namespace CaptureStream
 			using (var str = new RawSourceWaveStream(buffer, 0, e.BytesRecorded, audio.WaveFormat))
 			{
 				var six = new WaveFloatTo16Provider(str);
-				six.Read(buffer, 0, e.BytesRecorded);
-				
-				using(var transstream = new RawSourceWaveStream(buffer, 0, e.BytesRecorded, six.WaveFormat))
+				//var outstream = new RawSourceWaveStream(six, six.WaveFormat);
+				byte[] newbuffer = new byte[e.BytesRecorded];
+				var bytesread = six.Read(newbuffer, 0, e.BytesRecorded);
+				var output = StereoToMono(newbuffer);
+				if (needaudioheader)
 				{
-					var format = new AdpcmWaveFormat(44100, 2);
-					var conv = new WaveFormatConversionStream(format, transstream);
-					var outbuffer = new byte[conv.Length];
-
-					conv.Read(outbuffer, 0, (int)conv.Length);
-					
-					//var test = new AcmStream(format, transstream.WaveFormat);
-					//var newstream = WaveFormatConversionStream.CreatePcmStream(transstream);
-
-
-					
-					
-					//var outbuffer = new byte[test.Length];
-
-					//test.Read(outbuffer, 0, (int)test.Length);
-
-					if (needaudioheader)
-					{
-						needaudioheader = false;
-						var header = new audioheader();
-						header.BitsPerSample = conv.WaveFormat.BitsPerSample;
-						header.SampleRate = conv.WaveFormat.SampleRate;
-						header.AverageBytesPerSecond = conv.WaveFormat.AverageBytesPerSecond;
-						header.Channels = conv.WaveFormat.Channels;
-						outAudio.Write(header.getBytes());
-					}
-					outAudio.Write(outbuffer, 0, (int)conv.Length);
-					audiolengthmonitor = conv.Length;
+					needaudioheader = false;
+					var header = new audioheader();
+					header.BitsPerSample = six.WaveFormat.BitsPerSample / 2;
+					header.SampleRate = six.WaveFormat.SampleRate;
+					header.AverageBytesPerSecond = six.WaveFormat.AverageBytesPerSecond / 2;
+					header.Channels = six.WaveFormat.Channels / 2;
+					outAudio.Write(header.getBytes());
 				}
-
-
-
+				outAudio.Write(output, 0, bytesread / 2);
+				audiolengthmonitor = bytesread / 2;
 			}
 		}
 		public struct streamheader
@@ -231,6 +223,7 @@ namespace CaptureStream
 		byte[] frameout;
 		byte[] bmpframe;
 		bool wait = false;
+		bool playing = false;
 		void UpdateStreaming()
 		{
 			while(true)
@@ -365,11 +358,7 @@ namespace CaptureStream
 			drawcapturebox = false;
 		}
 
-		private void DrawCaptureBoxEnable(object sender, MouseEventArgs e)
-		{
-			if(!recording)
-			drawcapturebox = !drawcapturebox;
-		}
+
 
 		private void UpdatePosX(object sender, EventArgs e)
 		{
@@ -433,10 +422,18 @@ namespace CaptureStream
 
 		}
 		bool running = true;
+
+		private void Playback_Click(object sender, EventArgs e)
+		{
+			if (!recording)
+				playback = true;
+		}
+
 		private void onClosing(object sender, FormClosingEventArgs e)
 		{
 			running = false;
 			recording = false;
+			playback = false;
 			MediaFoundationApi.Shutdown();
 		}
 
