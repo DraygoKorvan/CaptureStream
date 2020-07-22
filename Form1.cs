@@ -42,6 +42,7 @@ namespace CaptureStream
 		WaveFormat format = new WaveFormat(44100, 32, 1);
 		WaveFormat sourceFormat;
 		long framerate = 1;
+		int playbackframerate = 20;
 		long frameremainder = 0;
 		BinaryWriter outFile, outAudio;
 		private MMDevice device;
@@ -61,13 +62,13 @@ namespace CaptureStream
 			drawingpen.Width = 1;
 			bmppreview = new Bitmap(Rectangle.Width, Rectangle.Height);
 			Preview.Image = bmppreview;
-			outFile = new BinaryWriter(new FileStream("mydata", FileMode.Create));
-			outAudio = new BinaryWriter(new FileStream("mydataA", FileMode.Create));
+			
+			
 			Timer = new Stopwatch();
 
 			
-			frameremainder = Stopwatch.Frequency % 20;
-			framerate = Stopwatch.Frequency / 20;
+			frameremainder = Stopwatch.Frequency % playbackframerate;
+			framerate = Stopwatch.Frequency / playbackframerate;
 			using (var enumerator = new MMDeviceEnumerator())
 			{
 				device = enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Console);
@@ -80,7 +81,7 @@ namespace CaptureStream
 			blankplayer.Init(silence);
 
 			text_encoding.Text = sourceFormat.Encoding.ToString();
-
+			
 			audio.DataAvailable += Audio_DataAvailable;
 			audio.RecordingStopped += Audio_RecordingStopped;
 			UpdateBmp();
@@ -91,7 +92,7 @@ namespace CaptureStream
 		private void Audio_RecordingStopped(object sender, StoppedEventArgs e)
 		{
 			outAudio.Close();
-			outAudio = new BinaryWriter(new FileStream("mydataA2", FileMode.Create));
+			//outAudio = new BinaryWriter(new FileStream("mydataA2", FileMode.Create));
 		}
 
 		private void Audio_DataAvailable(object sender, WaveInEventArgs e)
@@ -99,7 +100,7 @@ namespace CaptureStream
 			if (e.BytesRecorded == 0)
 				return;
 			var buffer = e.Buffer;
-	
+
 			outAudio.Write(buffer);
 			//text_encoding.Text = sourceFormat.Encoding.ToString();
 
@@ -110,13 +111,15 @@ namespace CaptureStream
 			public int width;
 			public int height;
 			public int stride;
+			public int framerate;
 
 			public byte[] getBytes()
 			{
-				var retval = new byte[sizeof(int) * 3];
+				var retval = new byte[sizeof(int) * 4];
 				BitConverter.GetBytes(width).CopyTo(retval, 0);
 				BitConverter.GetBytes(height).CopyTo(retval, sizeof(int));
 				BitConverter.GetBytes(stride).CopyTo(retval, sizeof(int)*2);
+				BitConverter.GetBytes(framerate).CopyTo(retval, sizeof(int) * 3);
 				return retval;
 
 			}
@@ -163,6 +166,8 @@ namespace CaptureStream
 
 						blankplayer.Play();
 						audio.StartRecording();
+						outAudio = new BinaryWriter(new FileStream("mydataA", FileMode.Create));
+						outFile = new BinaryWriter(new FileStream("mydata", FileMode.Create));
 						outFile.Write(header.getBytes());
 						outFile.Flush();
 
@@ -197,8 +202,13 @@ namespace CaptureStream
 						IntPtr ptr = bmpData.Scan0;
 						int stride = Math.Abs(bmpData.Stride);
 						int bytes = stride * bmpData.Height;
+						if(bytes != frameout.Length)
+						{
+							throw new InvalidOperationException();
+						}
 						//frameout = new byte[bytes];
 						Marshal.Copy(ptr, frameout, 0, bytes);
+						
 						outFile.Write(frameout);
 
 						bmpbuffer.UnlockBits(bmpData);
@@ -220,7 +230,7 @@ namespace CaptureStream
 					{
 						Timer.Stop();
 						outFile.Close();
-						outFile = new BinaryWriter(new FileStream("mydata2", FileMode.Create));
+						//outFile = new BinaryWriter(new FileStream("mydata2", FileMode.Create));
 						audio.StopRecording();
 						blankplayer.Stop();
 
@@ -259,8 +269,9 @@ namespace CaptureStream
 				header.width = bmpData.Width;
 				header.height = bmpData.Height;
 				header.stride = bmpData.Stride;
+				header.framerate = playbackframerate;
 				bmpbuffer.UnlockBits(bmpData);
-				frameout = new byte[recordheight * (recordwidth + 2) * 3];
+				frameout = new byte[header.stride * header.height];
 			}
 				
 		}
