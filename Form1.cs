@@ -38,8 +38,8 @@ namespace CaptureStream
 
 		Pen drawingpen = new Pen(Color.Red);
 		Rectangle Rectangle = new Rectangle(0, 0, 1920, 1080);
-		int recordheight = 240;
-		int recordwidth = 426;
+		int recordheight = 238;
+		int recordwidth = 420;
 		Graphics gs;
 		Bitmap bmpbuffer, bmpreader, bmppreview;
 		Stopwatch Timer;
@@ -138,6 +138,8 @@ namespace CaptureStream
 
 		private void Audio_RecordingStopped(object sender, StoppedEventArgs e)
 		{
+			outAudio.Write(0);
+			outAudio.Flush();
 			outAudio.Close();
 			//outAudio = new BinaryWriter(new FileStream("mydataA2", FileMode.Create));
 		}
@@ -179,6 +181,7 @@ namespace CaptureStream
 				}
 				outAudio.Write(bytesread / 2);
 				outAudio.Write(output, 0, bytesread / 2);
+				outAudio.Flush();
 				audiolengthmonitor = bytesread / 2;
 			}
 		}
