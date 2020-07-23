@@ -294,6 +294,8 @@ namespace CaptureStream
 						//frameout = new byte[bytes];
 						Marshal.Copy(ptr, frameout, 0, bytes);
 						outFile.Write(control);
+						outFile.Write((ushort)stride);
+						outFile.Write((ushort)bmpData.Height);
 						outFile.Write(frameout);
 
 						bmpbuffer.UnlockBits(bmpData);
