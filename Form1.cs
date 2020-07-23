@@ -28,8 +28,10 @@ namespace CaptureStream
 		public static extern void ReleaseDC(IntPtr hwnd, IntPtr dc);
 
 
+		public static MemoryStream VideoStream = new MemoryStream();
+		public static MemoryStream AudioStream = new MemoryStream();
+
 		bool recording = false;
-		bool drawcapturebox = false;
 		bool playback = false;
 		int control = 0;
 		long frame = 0;
@@ -247,8 +249,10 @@ namespace CaptureStream
 						blankplayer.Play();
 						needaudioheader = true;
 						audio.StartRecording();
-						outAudio = new BinaryWriter(new FileStream("mydataA", FileMode.Create));
-						outFile = new BinaryWriter(new FileStream("mydata", FileMode.Create));
+						outAudio = new BinaryWriter(AudioStream);
+						outFile = new BinaryWriter(VideoStream);
+						//outAudio = new BinaryWriter(new FileStream("mydataA", FileMode.Create));
+						//outFile = new BinaryWriter(new FileStream("mydata", FileMode.Create));
 						outFile.Write(header.getBytes());
 						outFile.Flush();
 
@@ -368,7 +372,6 @@ namespace CaptureStream
 		private void RecordOnClick(object sender, MouseEventArgs e)
 		{
 			recording = !recording;
-			drawcapturebox = false;
 		}
 
 

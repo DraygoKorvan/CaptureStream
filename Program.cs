@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,7 +13,7 @@ namespace CaptureStream
 		private static Mutex mutex = null;
 		const string appName = "BitStream";
 
-		
+
 		/// <summary>
 		/// The main entry point for the application.
 		/// </summary>
