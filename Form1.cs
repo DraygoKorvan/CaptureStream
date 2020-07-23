@@ -10,6 +10,7 @@ using System.Data;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.IO.Pipes;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -28,8 +29,8 @@ namespace CaptureStream
 		public static extern void ReleaseDC(IntPtr hwnd, IntPtr dc);
 
 
-		public static MemoryStream VideoStream = new MemoryStream();
-		public static MemoryStream AudioStream = new MemoryStream();
+		public static AnonymousPipeServerStream VideoStream = new AnonymousPipeServerStream(PipeDirection.In, HandleInheritability.Inheritable);
+		public static AnonymousPipeServerStream AudioStream = new AnonymousPipeServerStream(PipeDirection.In, HandleInheritability.Inheritable);
 
 		bool recording = false;
 		bool playback = false;
