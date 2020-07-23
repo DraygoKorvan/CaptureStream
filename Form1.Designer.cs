@@ -46,6 +46,7 @@
 			this.ImageUpdater = new System.ComponentModel.BackgroundWorker();
 			this.FrameTimeMonitor = new System.Windows.Forms.Label();
 			this.AudioLength = new System.Windows.Forms.Label();
+			this.RecordingText = new System.Windows.Forms.Label();
 			((System.ComponentModel.ISupportInitialize)(this.Preview)).BeginInit();
 			this.SuspendLayout();
 			// 
@@ -115,9 +116,9 @@
 			this.label4.AutoSize = true;
 			this.label4.Location = new System.Drawing.Point(205, 302);
 			this.label4.Name = "label4";
-			this.label4.Size = new System.Drawing.Size(35, 13);
+			this.label4.Size = new System.Drawing.Size(27, 13);
 			this.label4.TabIndex = 9;
-			this.label4.Text = "Offset";
+			this.label4.Text = "Size";
 			// 
 			// text_ResX
 			// 
@@ -200,11 +201,21 @@
 			this.AudioLength.TabIndex = 16;
 			this.AudioLength.Text = "audlen";
 			// 
+			// RecordingText
+			// 
+			this.RecordingText.AutoSize = true;
+			this.RecordingText.Location = new System.Drawing.Point(132, 394);
+			this.RecordingText.Name = "RecordingText";
+			this.RecordingText.Size = new System.Drawing.Size(99, 13);
+			this.RecordingText.TabIndex = 17;
+			this.RecordingText.Text = "Recording Stopped";
+			// 
 			// CaptureStreamForm
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
 			this.ClientSize = new System.Drawing.Size(800, 450);
+			this.Controls.Add(this.RecordingText);
 			this.Controls.Add(this.AudioLength);
 			this.Controls.Add(this.FrameTimeMonitor);
 			this.Controls.Add(this.Preview);
@@ -250,6 +261,7 @@
 		private System.ComponentModel.BackgroundWorker ImageUpdater;
 		private System.Windows.Forms.Label FrameTimeMonitor;
 		private System.Windows.Forms.Label AudioLength;
+		private System.Windows.Forms.Label RecordingText;
 	}
 }
 

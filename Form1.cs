@@ -31,9 +31,11 @@ namespace CaptureStream
 		bool recording = false;
 		bool drawcapturebox = false;
 		bool playback = false;
+		int control = 0;
+		long frame = 0;
 
 		Pen drawingpen = new Pen(Color.Red);
-		Rectangle Rectangle = new Rectangle(531, 136, 852, 480);
+		Rectangle Rectangle = new Rectangle(0, 0, 1920, 1080);
 		int recordheight = 240;
 		int recordwidth = 426;
 		Graphics gs;
@@ -66,10 +68,10 @@ namespace CaptureStream
 			InitializeComponent();
 
 			SetDefaultValues();
-			Rectangle = new Rectangle(531, 136, 852, 480);
+			//Rectangle = new Rectangle(531, 136, 852, 480);
 			drawingpen.Width = 1;
-			bmppreview = new Bitmap(Rectangle.Width, Rectangle.Height);
-			Preview.Image = bmppreview;
+			//bmppreview = new Bitmap(Rectangle.Width, Rectangle.Height);
+			//Preview.Image = bmppreview;
 			
 			
 			Timer = new Stopwatch();
@@ -173,6 +175,7 @@ namespace CaptureStream
 					header.Channels = six.WaveFormat.Channels / 2;
 					outAudio.Write(header.getBytes());
 				}
+				outAudio.Write(bytesread / 2);
 				outAudio.Write(output, 0, bytesread / 2);
 				audiolengthmonitor = bytesread / 2;
 			}
@@ -217,6 +220,10 @@ namespace CaptureStream
 			Preview.Refresh();
 			FrameTimeMonitor.Text = string.Format("{0:N0} ms", (frameratemonitor / (double)Stopwatch.Frequency) * 1000);
 			AudioLength.Text = string.Format("{0:N0}", audiolengthmonitor.ToString());
+			if (recording)
+				RecordingText.Text = "Recording";
+			else
+				RecordingText.Text = "Stopped Recording";
 		}
 		public delegate void RefreshCallback();
 		byte[] outcolor = new byte[3];
@@ -236,7 +243,7 @@ namespace CaptureStream
 						//just started
 						Timer.Start();
 						tick = 0;
-
+						frame = 0;
 						blankplayer.Play();
 						needaudioheader = true;
 						audio.StartRecording();
@@ -282,10 +289,11 @@ namespace CaptureStream
 						}
 						//frameout = new byte[bytes];
 						Marshal.Copy(ptr, frameout, 0, bytes);
-						
+						outFile.Write(control);
 						outFile.Write(frameout);
 
 						bmpbuffer.UnlockBits(bmpData);
+						
 						outFile.Flush();
 						frameratemonitor = Timer.ElapsedTicks - start;
 					}
@@ -302,7 +310,10 @@ namespace CaptureStream
 
 					if (Timer.IsRunning)
 					{
+
 						Timer.Stop();
+						control = 1;
+						outFile.Write(control);
 						outFile.Close();
 						//outFile = new BinaryWriter(new FileStream("mydata2", FileMode.Create));
 						audio.StopRecording();
@@ -339,6 +350,8 @@ namespace CaptureStream
 					bmpbuffer.Dispose();
 				bmpreader = new Bitmap(Rectangle.Width, Rectangle.Height, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
 				bmpbuffer = new Bitmap(recordwidth, recordheight, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+				bmppreview = new Bitmap(Rectangle.Width, Rectangle.Height, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+				Preview.Image = bmppreview;
 
 				System.Drawing.Imaging.BitmapData bmpData = bmpbuffer.LockBits(new Rectangle(0, 0, bmpbuffer.Width, bmpbuffer.Height), System.Drawing.Imaging.ImageLockMode.ReadOnly, bmpbuffer.PixelFormat);
 				header = new streamheader();
@@ -366,7 +379,7 @@ namespace CaptureStream
 				return;
 			if (int.TryParse(((TextBox)sender).Text, out int newval))
 			{
-				if (newval > 0)
+				if (newval >= 0)
 					Rectangle.X = newval;
 				
 			}
@@ -380,7 +393,7 @@ namespace CaptureStream
 				return;
 			if (int.TryParse(((TextBox)sender).Text, out int newval))
 			{
-				if (newval > 0)
+				if (newval >= 0)
 					Rectangle.Y = newval;
 			}
 		}
