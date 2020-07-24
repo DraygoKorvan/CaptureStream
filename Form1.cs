@@ -61,7 +61,7 @@ namespace CaptureStream
 		private AcmStream resamplePCM;
 
 
-		private streamheader header;
+		private videoheader header;
 		private audioheader aheader;
 		long frameratemonitor = 0;
 		long audiolengthmonitor = 0;
@@ -135,6 +135,20 @@ namespace CaptureStream
 				retval.AverageBytesPerSecond =	BitConverter.ToInt32(data, sizeof(int) * 3);
 				return retval;
 			}
+
+			public static audioheader getFromBytes(byte[] bytes)
+			{
+				var header = new audioheader();
+				header.SampleRate = BitConverter.ToInt32(bytes, 0);
+				header.Channels = BitConverter.ToInt32(bytes, sizeof(int));
+				header.BitsPerSample = BitConverter.ToInt32(bytes, sizeof(int) * 2);
+				header.AverageBytesPerSecond = BitConverter.ToInt32(bytes, sizeof(int) * 3);
+				return header;
+			}
+			public static int Length()
+			{
+				return sizeof(int) * 4;
+			}
 		}
 
 		private void Audio_RecordingStopped(object sender, StoppedEventArgs e)
@@ -173,11 +187,11 @@ namespace CaptureStream
 				if (needaudioheader)
 				{
 					needaudioheader = false;
-					var header = new audioheader();
-					header.BitsPerSample = six.WaveFormat.BitsPerSample / 2;
-					header.SampleRate = six.WaveFormat.SampleRate;
-					header.AverageBytesPerSecond = six.WaveFormat.AverageBytesPerSecond / 2;
-					header.Channels = six.WaveFormat.Channels / 2;
+					aheader = new audioheader();
+					aheader.BitsPerSample = six.WaveFormat.BitsPerSample / 2;
+					aheader.SampleRate = six.WaveFormat.SampleRate;
+					aheader.AverageBytesPerSecond = six.WaveFormat.AverageBytesPerSecond / 2;
+					aheader.Channels = six.WaveFormat.Channels / 2;
 					outAudio.Write(header.getBytes());
 				}
 				outAudio.Write(bytesread / 2);
@@ -186,7 +200,7 @@ namespace CaptureStream
 				audiolengthmonitor = bytesread / 2;
 			}
 		}
-		public struct streamheader
+		public struct videoheader
 		{
 			public int width;
 			public int height;
@@ -201,7 +215,20 @@ namespace CaptureStream
 				BitConverter.GetBytes(stride).CopyTo(retval, sizeof(int)*2);
 				BitConverter.GetBytes(framerate).CopyTo(retval, sizeof(int) * 3);
 				return retval;
+			}
+			public static videoheader getFromBytes(byte[] bytes)
+			{
+				var header = new videoheader();
+				header.width = BitConverter.ToInt32(bytes, 0);
+				header.height = BitConverter.ToInt32(bytes, sizeof(int));
+				header.stride = BitConverter.ToInt32(bytes, sizeof(int) * 2);
+				header.framerate = BitConverter.ToInt32(bytes, sizeof(int) * 3);
+				return header;
+			}
 
+			public static int Length()
+			{
+				return sizeof(int) * 4;
 			}
 		}
 		private void StartBackgroundWorker()
@@ -311,9 +338,6 @@ namespace CaptureStream
 					{
 						wait = true;
 					}	
-
-
-
 				}
 				else
 				{
@@ -364,7 +388,7 @@ namespace CaptureStream
 				Preview.Image = bmppreview;
 
 				System.Drawing.Imaging.BitmapData bmpData = bmpbuffer.LockBits(new Rectangle(0, 0, bmpbuffer.Width, bmpbuffer.Height), System.Drawing.Imaging.ImageLockMode.ReadOnly, bmpbuffer.PixelFormat);
-				header = new streamheader();
+				header = new videoheader();
 				header.width = bmpData.Width;
 				header.height = bmpData.Height;
 				header.stride = bmpData.Stride;
