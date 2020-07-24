@@ -9,6 +9,7 @@ using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
 using System.IO.Pipes;
 using System.Linq;
@@ -42,7 +43,7 @@ namespace CaptureStream
 		int recordheight = 238;
 		int recordwidth = 420;
 		Graphics gs;
-		Bitmap bmpbuffer, bmpreader, bmppreview;
+		Bitmap bmpreader, bmppreview; //bmpbuffer;
 		Stopwatch Timer;
 		long tick = 0;
 		long tickremainder = 0;
@@ -261,7 +262,7 @@ namespace CaptureStream
 		public delegate void RefreshCallback();
 		byte[] outcolor = new byte[3];
 		byte[] frameout;
-		byte[] bmpframe;
+		//byte[] bmpframe;
 		bool wait = false;
 		bool playing = false;
 		void UpdateStreaming()
@@ -288,7 +289,7 @@ namespace CaptureStream
 						outFile.Flush();
 
 					}
-					if(  (framerate ) * tick + framerateadd <= Timer.ElapsedTicks)
+					if((framerate) * tick + framerateadd <= Timer.ElapsedTicks)
 					{
 						var start = Timer.ElapsedTicks;
 						wait = false;
@@ -305,32 +306,29 @@ namespace CaptureStream
 						using (Graphics g = Graphics.FromImage(bmpreader))
 						{
 							g.CopyFromScreen(Rectangle.Location, Point.Empty, Rectangle.Size);
-
 						}
-						using (Graphics cv = Graphics.FromImage(bmpbuffer))
+
+						/*using (Graphics cv = Graphics.FromImage(bmpbuffer))
 						{
 							cv.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.NearestNeighbor;
 							cv.DrawImage(bmpreader, 0, 0, bmpbuffer.Width, bmpbuffer.Height);
-						}
+						}*/
 
-						System.Drawing.Imaging.BitmapData bmpData = bmpbuffer.LockBits(new Rectangle(0, 0, bmpbuffer.Width, bmpbuffer.Height), System.Drawing.Imaging.ImageLockMode.ReadOnly, bmpbuffer.PixelFormat);
+						frameout = EncodeImageToChar(recordwidth, recordheight, BitmapToByteArray(new Bitmap(bmpreader, recordwidth, recordheight)));
 
-						IntPtr ptr = bmpData.Scan0;
-						int stride = Math.Abs(bmpData.Stride);
-						int bytes = stride * bmpData.Height;
+						int stride = recordwidth;
+						int bytes = recordwidth * recordheight * 2;
 						if(bytes != frameout.Length)
 						{
 							throw new InvalidOperationException();
 						}
 						//frameout = new byte[bytes];
-						Marshal.Copy(ptr, frameout, 0, bytes);
+
 						outFile.Write(control);
 						outFile.Write((ushort)stride);
-						outFile.Write((ushort)bmpData.Height);
+						outFile.Write((ushort)recordwidth);
 						outFile.Write(frameout);
 
-						bmpbuffer.UnlockBits(bmpData);
-						
 						outFile.Flush();
 						frameratemonitor = Timer.ElapsedTicks - start;
 					}
@@ -360,9 +358,42 @@ namespace CaptureStream
 				}
 				Thread.Sleep(0);
 			}
+		}
 
+		public static byte[] BitmapToByteArray(Bitmap bitmap)
+		{
+			BitmapData bmpdata = null;
+			try
+			{
+				bmpdata = bitmap.LockBits(new Rectangle(0, 0, bitmap.Width, bitmap.Height), ImageLockMode.ReadOnly, PixelFormat.Format24bppRgb);
+				int numbytes = bmpdata.Stride * bitmap.Height;
+				byte[] bytedata = new byte[numbytes];
+				IntPtr ptr = bmpdata.Scan0;
+				Marshal.Copy(ptr, bytedata, 0, numbytes);
+				return bytedata;
+			}
+			finally
+			{
+				if (bmpdata != null)
+					bitmap.UnlockBits(bmpdata);
+			}
+		}
 
+		byte[] EncodeImageToChar(int height, int width, byte[] encodedFrame)
+		{
+			byte[] output = new byte[2 * height * width];
+			Parallel.For(0, height * width, i => {
+				byte r = encodedFrame[(i * 3) + 2];
+				byte g = encodedFrame[(i * 3) + 1];
+				byte b = encodedFrame[(i * 3)];
+				BitConverter.GetBytes((ushort)ColorToChar(r, g, b)).CopyTo(output, i * 2);
+			});
+			return output;
+		}
 
+		char ColorToChar(byte r, byte g, byte b)
+		{
+			return (char)((uint)0x3000 + ((r >> 3) << 10) + ((g >> 3) << 5) + (b >> 3));
 		}
 
 		private void SetDefaultValues()
@@ -380,21 +411,21 @@ namespace CaptureStream
 		{
 			if(!recording)
 			{
-				if(bmpbuffer != null)
-					bmpbuffer.Dispose();
+				//if(bmpbuffer != null)
+					//bmpbuffer.Dispose();
 				bmpreader = new Bitmap(Rectangle.Width, Rectangle.Height, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
-				bmpbuffer = new Bitmap(recordwidth, recordheight, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+				//bmpbuffer = new Bitmap(recordwidth, recordheight, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
 				bmppreview = new Bitmap(Rectangle.Width, Rectangle.Height, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
 				Preview.Image = bmppreview;
 
-				System.Drawing.Imaging.BitmapData bmpData = bmpbuffer.LockBits(new Rectangle(0, 0, bmpbuffer.Width, bmpbuffer.Height), System.Drawing.Imaging.ImageLockMode.ReadOnly, bmpbuffer.PixelFormat);
+				/*BitmapData bmpData = bmpbuffer.LockBits(new Rectangle(0, 0, bmpbuffer.Width, bmpbuffer.Height), System.Drawing.Imaging.ImageLockMode.ReadOnly, bmpbuffer.PixelFormat);
 				header = new videoheader();
 				header.width = bmpData.Width;
 				header.height = bmpData.Height;
 				header.stride = bmpData.Stride;
 				header.framerate = playbackframerate;
 				bmpbuffer.UnlockBits(bmpData);
-				frameout = new byte[header.stride * header.height];
+				frameout = new byte[header.stride * header.height];*/
 			}
 				
 		}
@@ -459,7 +490,7 @@ namespace CaptureStream
 			if (int.TryParse(((TextBox)sender).Text, out int newval))
 			{
 				if (newval > 0)
-					recordwidth = newval;
+					recordwidth = newval + newval % 4;
 			}
 		}
 
@@ -490,7 +521,7 @@ namespace CaptureStream
 			if (int.TryParse(((TextBox)sender).Text, out int newval))
 			{
 				if (newval > 0)
-					recordheight = newval;
+					recordheight = newval + newval % 4;
 			}
 		}
 
