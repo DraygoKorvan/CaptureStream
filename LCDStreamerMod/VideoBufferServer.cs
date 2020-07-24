@@ -118,7 +118,7 @@ namespace LCDText2
 			Buffer.BlockCopy(audio, 0, message, pheader.Length, length);
 			MyAPIGateway.Multiplayer.SendMessageToServer(videostreamcommand, message);
 		}
-		bool firstvideopacket = false;
+		bool firstvideopacket = true;
 		private void RecieveVideoStream(byte[] video, int length)
 		{
 			//---------------------------
@@ -128,6 +128,7 @@ namespace LCDText2
 			if(firstvideopacket)
 			{
 				offset += VideoBuffer.VideoHeader.Length();
+				firstvideopacket = false;
 			}
 			var newlength = EncodeImageToChar(video, offset);
 			length = newlength;
@@ -157,7 +158,6 @@ namespace LCDText2
 		/// </summary>
 		int EncodeImageToChar(byte[] encodedFrame, int offset)
 		{
-			
 
 			int control = BitConverter.ToInt32(encodedFrame, offset);
 			ushort stride = BitConverter.ToUInt16(encodedFrame, offset + sizeof(int));
