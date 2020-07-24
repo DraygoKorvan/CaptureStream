@@ -12,6 +12,7 @@ using VRage.ModAPI;
 using System.Runtime.InteropServices;
 using VRage;
 using SENetworkAPI;
+using System.Collections.Concurrent;
 
 namespace LocalLCD
 {
@@ -25,6 +26,7 @@ namespace LocalLCD
 		public bool isServer = false;
 		public const ushort COMID = 8723;
 		public const string NETWORKNAME = "LCDPlayer";
+		ConcurrentDictionary<ulong, List<LocalLCDWriterComponent>> subscribers = new ConcurrentDictionary<ulong, List<LocalLCDWriterComponent>>();
 
 		public override void UpdateAfterSimulation()
 		{
@@ -36,12 +38,10 @@ namespace LocalLCD
 			{
 				HudAPI = new HudAPIv2(RegisterHudAPI);
 				init = true;
-				LocalLCDWriterComponent.CreateTerminalControls();
-				isServer = MyAPIGateway.Multiplayer.IsServer;//only want to send net if server
+				//LocalLCDWriterComponent.CreateTerminalControls();
+				isServer = MyAPIGateway.Multiplayer.IsServer;
 				isDedicated = isServer && MyAPIGateway.Utilities.IsDedicated;
-
 			}
-
 		}
 
 		private void RegisterHudAPI()

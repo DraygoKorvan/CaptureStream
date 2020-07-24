@@ -74,32 +74,35 @@ namespace LocalLCD
 				NetworkAPI.Init(LCDWriterCore.COMID, LCDWriterCore.NETWORKNAME);
 			}
 			CurrentBuffer = new NetSync<ulong>(this, TransferType.Both, 1);
+			CurrentBuffer.SyncOnLoad = true;
+			CurrentBuffer.LimitToSyncDistance = true;
+			CurrentBuffer.ValueChanged += Changed_Channel;
+		}
+
+		private void Changed_Channel(ulong arg1, ulong arg2)
+		{
+			
 		}
 
 		public override void OnAddedToContainer()
 		{
 			if (this.Entity.Physics == null)
 				return;
+			if(!controls_created)
+			{
+				
+				CreateTerminalControls();
+			}
 			TextPanel = Entity as IMyTextPanel;
 			this.NeedsUpdate |= VRage.ModAPI.MyEntityUpdateEnum.EACH_10TH_FRAME | VRage.ModAPI.MyEntityUpdateEnum.EACH_FRAME | VRage.ModAPI.MyEntityUpdateEnum.EACH_100TH_FRAME;
+			Script = new VideoPlayerScript(this.Entity as IMyTextPanel);
 
 
-			InitScript();
 
 
 		}
-		string step = string.Empty;
 
-
-
-		private void InitScript()
-		{
-			//TextPanel.CustomDataChanged += TextPanel_CustomDataChanged;
-			Script = null;
-			TextPanel_ScriptChanged(TextPanel);//call it
-			init = true;
-		}
-		private void TextPanel_ScriptChanged(IMyTerminalBlock obj)
+		private void TextPanel_ChannelChanged(IMyTerminalBlock obj)
 		{
 			if(obj == null)
 			{
@@ -119,18 +122,20 @@ namespace LocalLCD
 			}
 			if (Selected == 0)
 			{
-				Script = null;
+				CurrentBuffer.Value = 1;
 
 				//TextDisplay.Message.Clear();
 				return;
 			}
 			if(Selected < Obj.Count)
 			{
-				//CurrentBuffer = Obj[(int)Selected].Value;
-				if (LCDWriterCore.instance != null)
+				ulong channel;
+				if(SteamIdGetter.TryGetValue(Selected, out channel))
 				{
-					
+					CurrentBuffer.Value = channel;
+
 				}
+
 			}
         }
 
@@ -142,7 +147,7 @@ namespace LocalLCD
 
 			if (Selected <= 0)
 			{
-
+				return;
 			}
 			if (Script == null)
 			{
@@ -156,7 +161,7 @@ namespace LocalLCD
 		{
 			//network updates set this. 
 			CurrentBuffer.Value = currentChannel;
-			TextPanel_ScriptChanged(this.Entity as IMyTerminalBlock);
+			TextPanel_ChannelChanged(this.Entity as IMyTerminalBlock);
         }
 
 
@@ -165,7 +170,7 @@ namespace LocalLCD
 		{
 			if(Selected == -1)
 			{
-				TextPanel_ScriptChanged(this.Entity as IMyTerminalBlock);
+				TextPanel_ChannelChanged(this.Entity as IMyTerminalBlock);
             }
 		}
 
@@ -175,14 +180,16 @@ namespace LocalLCD
 			
 			base.OnRemovedFromScene();
 		}
+		public static bool controls_created = false;
 		private static MyStringId None = MyStringId.GetOrCompute("None");
         public static void CreateTerminalControls()
 		{
-			if(ComboListBox == null)
+			controls_created = true;
+			if (ComboListBox == null)
 			{
 				ComboListBox = MyAPIGateway.TerminalControls.CreateControl<IMyTerminalControlCombobox, IMyTextPanel>("Script List");
 				ComboListBox.Enabled = ControlEnabled;
-				ComboListBox.Title = MyStringId.GetOrCompute("Script List");
+				ComboListBox.Title = MyStringId.GetOrCompute("Channel List");
 				ComboListBox.Visible = ControlVisible;
 				ComboListBox.ComboBoxContent = (x) => GetContent(x);
 				ComboListBox.SupportsMultipleBlocks = SupportsMultipleBlocks;
@@ -197,13 +204,14 @@ namespace LocalLCD
             }
 			
 		}
-
-		public static void AddLineItem(MyStringId Item)
+		static Dictionary<long, ulong> SteamIdGetter = new Dictionary<long, ulong>();
+		public static void AddLineItem(MyStringId Item, ulong steamid)
 		{
 			var LineItem = new MyTerminalControlComboBoxItem();
 			LineItem.Key = Obj.Count;
 			LineItem.Value = Item;
 			Obj.Add(LineItem);
+			SteamIdGetter.Add(LineItem.Key, steamid);
 		}
 
 		private static long Getter(IMyTerminalBlock block)
@@ -213,7 +221,7 @@ namespace LocalLCD
 			OutValue = block.GameLogic.GetAs<LocalLCDWriterComponent>();
 			if(OutValue == null)
 			{
-				MyAPIGateway.Utilities.ShowMessage("Outvalue", "Null");
+				//MyAPIGateway.Utilities.ShowMessage("Outvalue", "Null");
 				return 0;
 			}
            
@@ -245,7 +253,7 @@ namespace LocalLCD
 		private void SetSelectedRow(long arg)
 		{
 			Selected = arg;
-			TextPanel_ScriptChanged(TextPanel); 
+			TextPanel_ChannelChanged(TextPanel); 
 		}
 
 		private static List<MyTerminalControlComboBoxItem> Obj = new List<MyTerminalControlComboBoxItem>();
