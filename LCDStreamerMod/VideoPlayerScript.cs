@@ -17,7 +17,7 @@ using System.Diagnostics;
 
 namespace LocalLCD
 {
-	public class VideoPlayerScript : LCDScript
+	public class VideoPlayerScript
 	{
 		MemoryStream test = new MemoryStream();
 		MyEntity3DSoundEmitter AudioEmitter;
@@ -70,7 +70,7 @@ namespace LocalLCD
 
 		private Sandbox.ModAPI.Ingame.IMyTextSurface surface;
 
-		public VideoPlayerScript(Sandbox.ModAPI.IMyTextPanel panel) : base(panel)
+		public VideoPlayerScript(Sandbox.ModAPI.IMyTextPanel panel)
 		{
 			panel.Font = "Mono Color";
 			panel.FontSize = 0.1f;
@@ -87,16 +87,13 @@ namespace LocalLCD
 			}
 
 		}
-		public override void Echo(string EchoString)
-		{
-			//OutputString.AppendLine(EchoString);
-		}
+
 		public static VideoPlayerScript Factory(Sandbox.ModAPI.IMyTextPanel Panel)
 		{
 			return new VideoPlayerScript(Panel);
 		}
 
-		public override void Update()
+		public void Update()
 		{
 			
 			try
@@ -124,9 +121,7 @@ namespace LocalLCD
 			}
 			catch(Exception ex)
 			{
-				OutputString.Clear();
-				OutputString.AppendLine(ex.Message.ToString());
-				OutputString.AppendLine(ex.StackTrace.ToString());
+
 			}
         }
 
@@ -158,13 +153,12 @@ namespace LocalLCD
 				}
 				else
 				{
-					OutputString.Clear();
-					OutputString.Append("File Does not exist.");
+
 				}
 			}
 			if(playing)
 			{
-				OutputString.Clear();
+
 				if (ticksperframe * framecounter < time.ElapsedTicks)
 				{
 					framecounter++;
@@ -173,7 +167,7 @@ namespace LocalLCD
 
 				if (tickspersecond * audioqueues + offset < time.ElapsedTicks)
 				{
-					OutputString.AppendLine("queuesound");
+
 					audioqueues++;
 
 					bufferblock--;
@@ -280,9 +274,7 @@ namespace LocalLCD
 			}
 			catch (Exception ex)
 			{
-				OutputString.Append("Playing End by Error");
-				OutputString.AppendLine(ex.Message.ToString());
-				OutputString.AppendLine(ex.StackTrace.ToString());
+
 				playing = false;
 				done = true;
 				error = true;
@@ -294,9 +286,8 @@ namespace LocalLCD
 		{
 			return (char)((uint)0x3000 + ((r >> 3) << 10) + ((g >> 3) << 5) + (b >> 3));
 		}
-		public override void Close()
+		public void Close()
 		{
-			base.Close();
 			if(VideoReader != null)
 			{
 				VideoReader.Dispose();

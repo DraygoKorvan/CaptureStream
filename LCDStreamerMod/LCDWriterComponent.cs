@@ -17,33 +17,29 @@ using Sandbox.ModAPI.Interfaces.Terminal;
 using VRage.ModAPI;
 using Sandbox.ModAPI.Interfaces;
 using Sandbox.Game.EntityComponents;
+using LCDText2;
+using SENetworkAPI;
 
 namespace LocalLCD
 {
 	[MyEntityComponentDescriptor(typeof(MyObjectBuilder_TextPanel), true)]
-	public class LocalLCDWriterComponent : MyGameLogicComponent
+	public class LocalLCDWriterComponent : MyNetworkGameLogicComponent
 	{
 		MyObjectBuilder_EntityBase ObjectBuilder;
 		IMyTextPanel TextPanel;
-		//HudAPIv2.EntityMessage TextDisplay;
 		MyStringId PanelType;
-		MyStringId CurrentScript;
+		NetSync<ulong> CurrentBuffer;
 		MyDefinitionId TexDef;
-		//StringBuilder Text = new StringBuilder();
-		public LCDScript Script;
+		public VideoPlayerScript Script;
 		bool init = false;
-		Vector2D Max = Vector2D.Zero;
-		Vector3D Offset = Vector3D.Zero;
 		double m_Scale = 1.0d;
 		bool isInit = false;
 		long Selected = -1;
-
 
 		private static IMyTerminalControlCombobox ComboListBox;
 
 		public double Scale
 		{
-
 			get
 			{
 				return m_Scale;
@@ -73,64 +69,28 @@ namespace LocalLCD
 		{
 			ObjectBuilder = objectBuilder;
             base.Init(objectBuilder);
-
+			if (!NetworkAPI.IsInitialized)
+			{
+				NetworkAPI.Init(LCDWriterCore.COMID, LCDWriterCore.NETWORKNAME);
+			}
+			CurrentBuffer = new NetSync<ulong>(this, TransferType.Both, 1);
 		}
 
 		public override void OnAddedToContainer()
 		{
+			if (this.Entity.Physics == null)
+				return;
 			TextPanel = Entity as IMyTextPanel;
 			this.NeedsUpdate |= VRage.ModAPI.MyEntityUpdateEnum.EACH_10TH_FRAME | VRage.ModAPI.MyEntityUpdateEnum.EACH_FRAME | VRage.ModAPI.MyEntityUpdateEnum.EACH_100TH_FRAME;
-			if (TextPanel.Storage == null)
-				TextPanel.Storage = new MyModStorageComponent();
-			ReadSettings();
-			//if (LCDWriterCore.instance != null && TextDisplay != null)
-				InitScript();
 
-			LCDWriterCore.RegisterForNetwork(Entity, this);
+
+			InitScript();
+
+
 		}
 		string step = string.Empty;
-		private void ReadSettings()
-		{
-			string settings;
-			//step = "getting settings";
-			foreach(var item in TextPanel.Storage)
-			{
-				//step += '\n' + item.Key.ToString();
-				//step += '\n' + item.Value;
-			}
-			if(TextPanel.Storage.TryGetValue(LCDWriterCore.ModGuid, out settings))
-			{
-				//step = "got settings";
-				string[] strings = settings.Split(',');
-				if(strings.Length > 1)
-				{
-					//step = "Length more than one";
-					CurrentScript = MyStringId.GetOrCompute(strings[0]);
-					step = CurrentScript.String;
-				}
-			}
-			else
-			{
-				//TextPanel.Storage.
-            }
-			
-			
-        }
-		private void SaveSettings()
-		{
-			if (Entity.Storage != null)
-			{
-				if (Entity.Storage.ContainsKey(LCDWriterCore.ModGuid))
-				{
-					Entity.Storage[LCDWriterCore.ModGuid] = CurrentScript.String;
-				}
-				else
-				{
-					Entity.Storage.Add(LCDWriterCore.ModGuid, CurrentScript.String);
-				}
-			}
-				
-		}
+
+
 
 		private void InitScript()
 		{
@@ -147,61 +107,31 @@ namespace LocalLCD
 			}
 			if (Selected == -1)
 			{
-				if (CurrentScript == null)
+				if (CurrentBuffer.Value == 1)
 				{
 					Selected = 0;
 					
 				}
 				else
 				{
-					if (LCDWriterCore.instance != null)
-					{
-						Script = LCDWriterCore.instance.GetScript(CurrentScript, (IMyTextPanel)obj);
-						if (Script != null)
-						{
-							foreach(var item in Obj)
-							{
-								if(item.Value == CurrentScript)
-								{
-									Selected = item.Key;
-									break;
-								}
-							}
-						}
-						else
-						{
-							return;
-						}
-                    }
-					else
-					{
-						return;
-					}
+
 				}
 			}
 			if (Selected == 0)
 			{
 				Script = null;
 
-				SaveSettings();
 				//TextDisplay.Message.Clear();
 				return;
 			}
-
 			if(Selected < Obj.Count)
 			{
-				CurrentScript = Obj[(int)Selected].Value;
-				SaveSettings();
+				//CurrentBuffer = Obj[(int)Selected].Value;
 				if (LCDWriterCore.instance != null)
 				{
-					Script = LCDWriterCore.instance.GetScript(CurrentScript, (IMyTextPanel)obj);
-				}
 					
+				}
 			}
-
-
-
-
         }
 
 		public override void UpdateBeforeSimulation()
@@ -221,37 +151,15 @@ namespace LocalLCD
 			Script.Update();
 		}
 
-		public override void UpdateBeforeSimulation10()
-		{
-			if (LCDWriterCore.instance == null || LCDWriterCore.instance.isDedicated)
-				return;
 
-			if(!init)
-			{
-				InitScript();
-            }
-
-
-			Script.Update10();
-		}
-
-		internal void SetScript(long currentScript)
+		internal void SetChannel(ulong currentChannel)
 		{
 			//network updates set this. 
-			Selected = currentScript;
+			CurrentBuffer.Value = currentChannel;
 			TextPanel_ScriptChanged(this.Entity as IMyTerminalBlock);
         }
 
-		public override void UpdateBeforeSimulation100()
-		{
-			if (LCDWriterCore.instance == null || LCDWriterCore.instance.isDedicated)
-				return;
-			if (Script == null)
-			{
-				return;
-			}
-			Script.Update100();
-		}
+
 
 		internal void UpdateScript()
 		{
@@ -332,11 +240,6 @@ namespace LocalLCD
 			}
 
 			OutValue.SetSelectedRow(arg2);
-
-			if(LCDWriterCore.instance != null)
-			{
-				LCDWriterCore.instance.UpdateLCDForNetwork(block, OutValue);
-            }
 		}
 
 		private void SetSelectedRow(long arg)
@@ -378,6 +281,4 @@ namespace LocalLCD
 				Script.Close();
 		}
 	}
-
-
 }

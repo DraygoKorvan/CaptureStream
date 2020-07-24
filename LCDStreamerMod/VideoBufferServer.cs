@@ -30,11 +30,11 @@ namespace LCDText2
 		{
 			if (MyAPIGateway.Utilities == null)
 				MyAPIGateway.Utilities = MyAPIUtilities.Static;
+
 			MyAPIGateway.Utilities.SendModMessage(20982309832901, new MyTuple<Action<byte[], int>, Action<byte[], int>, Action<int>>(RecieveAudioStream, RecieveVideoStream, RecieveControl));
 			if (MyAPIGateway.Session.OnlineMode == VRage.Game.MyOnlineModeEnum.OFFLINE)
 				return;
 
-			
 			online = true;
 
 			isServer = MyAPIGateway.Multiplayer.IsServer;
@@ -43,8 +43,6 @@ namespace LCDText2
 			headerpacketlength = MyAPIGateway.Utilities.SerializeToBinary(def).Length;
 			packetheaderbuffer = new byte[headerpacketlength];
 			MyAPIGateway.Multiplayer.RegisterMessageHandler(videostreamcommand, RecievedMessage);
-
-
 		}
 
 		int headerpacketlength = 0;
@@ -163,9 +161,7 @@ namespace LCDText2
 			}
 			if (!registered)
 			{
-
 				tick++;
-
 
 				if (tick == 60)
 				{

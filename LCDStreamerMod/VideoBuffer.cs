@@ -33,6 +33,7 @@ namespace LCDText2
 				header.AverageBytesPerSecond = BitConverter.ToInt32(bytes, sizeof(int) * 3 + offset);
 				return header;
 			}
+
 			public static int Length()
 			{
 				return sizeof(int) * 4;
@@ -55,6 +56,7 @@ namespace LCDText2
 				BitConverter.GetBytes(framerate).CopyTo(retval, sizeof(int) * 3);
 				return retval;
 			}
+
 			public static VideoHeader GetFromBytes(byte[] bytes, int offset)
 			{
 				var header = new VideoHeader();
@@ -69,6 +71,7 @@ namespace LCDText2
 			{
 				return sizeof(int) * 4;
 			}
+
 		}
 
 		byte[][] videostorage;
@@ -76,7 +79,7 @@ namespace LCDText2
 		int[] vptr = new int[10] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 		int[] aptr = new int[10] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
-	int audioposition = 0;
+		int audioposition = 0;
 		int videoposition = 0;
 		int audiosize = 0;
 		int videosize = 0;
@@ -102,8 +105,6 @@ namespace LCDText2
 
 			}
 		}
-		
-
 
 		public VideoBuffer(ulong steamid)
 		{
@@ -157,7 +158,6 @@ namespace LCDText2
 					Buffer.BlockCopy(obj, offset, audiostorage[writepos], aptr[writepos], length);
 					aptr[writepos] += length;
 				}
-				
 			}
 		}
 
@@ -179,17 +179,13 @@ namespace LCDText2
 				{
 					audiostorage[i] = new byte[audioHeader.AverageBytesPerSecond];
 				}
-
 			}
-
-
 		}
 
 		internal void AddToVideoBuffer(byte[] obj, int offset, int length)
 		{
 			if (!hasvideoheader)
 			{
-				
 				videoHeader = VideoHeader.GetFromBytes(obj, offset);
 
 				offset += VideoHeader.Length();
@@ -199,9 +195,11 @@ namespace LCDText2
 			}
 			if (length <= 0)
 				return;
+
 			int control = BitConverter.ToInt32(obj, offset);
 			ushort stride = BitConverter.ToUInt16(obj, offset + sizeof(int));
 			ushort height = BitConverter.ToUInt16(obj, offset + sizeof(int) + sizeof(ushort));
+
 			if (control == 1)
 			{
 				closing = true;
@@ -246,7 +244,6 @@ namespace LCDText2
 					Buffer.BlockCopy(obj, offset, audiostorage[writepos], aptr[writepos], length);
 					vptr[writepos] += length;
 				}
-
 			}
 		}
 
@@ -268,7 +265,6 @@ namespace LCDText2
 				{
 					videostorage[i] = new byte[videoHeader.framerate * videoHeader.stride * videoHeader.width];
 				}
-
 			}
 		}
 
