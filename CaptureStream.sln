@@ -5,7 +5,7 @@ VisualStudioVersion = 16.0.30309.148
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CaptureStream", "CaptureStream.csproj", "{2DC768C1-5FB3-4D38-A24F-212C97867FFA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SE-StreamerPlugin", "..\SE-StreamerPlugin\SE-StreamerPlugin.csproj", "{76F855EF-3CE7-4E4F-9B60-F84DCFF1235D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SE-StreamerPlugin", "SE-StreamerPlugin\SE-StreamerPlugin.csproj", "{76F855EF-3CE7-4E4F-9B60-F84DCFF1235D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
