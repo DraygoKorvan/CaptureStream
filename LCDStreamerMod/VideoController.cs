@@ -77,7 +77,7 @@ namespace LocalLCD
 				ushort height = BitConverter.ToUInt16(videoframes, videoptr + sizeof(int) + sizeof(ushort));
 				videoptr += sizeof(int) + sizeof(ushort) * 2;
 				var length = stride * height;
-				string s_frame = getString(videoframes, videoptr, length);
+				string s_frame = getString(videoframes, videoptr, length /2 +videoBuffer.videoHeader.height);
 				//convert to string
 				foreach (var lcd in subscribers)
 				{
