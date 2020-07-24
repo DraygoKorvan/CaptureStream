@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CaptureStream", "CaptureStr
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SE-StreamerPlugin", "SE-StreamerPlugin\SE-StreamerPlugin.csproj", "{76F855EF-3CE7-4E4F-9B60-F84DCFF1235D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LCDStreamerMod", "LCDStreamerMod\LCDStreamerMod.csproj", "{1B1C9E47-44FF-4EC9-A873-0643E474F8A7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{76F855EF-3CE7-4E4F-9B60-F84DCFF1235D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{76F855EF-3CE7-4E4F-9B60-F84DCFF1235D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{76F855EF-3CE7-4E4F-9B60-F84DCFF1235D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1B1C9E47-44FF-4EC9-A873-0643E474F8A7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1B1C9E47-44FF-4EC9-A873-0643E474F8A7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1B1C9E47-44FF-4EC9-A873-0643E474F8A7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1B1C9E47-44FF-4EC9-A873-0643E474F8A7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
