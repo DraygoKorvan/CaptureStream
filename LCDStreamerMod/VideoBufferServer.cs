@@ -118,14 +118,19 @@ namespace LCDText2
 			Buffer.BlockCopy(audio, 0, message, pheader.Length, length);
 			MyAPIGateway.Multiplayer.SendMessageToServer(videostreamcommand, message);
 		}
-
+		bool firstvideopacket = false;
 		private void RecieveVideoStream(byte[] video, int length)
 		{
 			//---------------------------
 			//------- PREFORMAT GOES HERE
 			//---------------------------
-
-			byte[] output = EncodeImageToChar(video);
+			int offset = 0;
+			if(firstvideopacket)
+			{
+				offset += VideoBuffer.VideoHeader.Length();
+			}
+			var newlength = EncodeImageToChar(video, offset);
+			length = newlength;
 			//int newLength = output.Length; set the new length of the frame?
 
 			//---------------------------
@@ -133,7 +138,7 @@ namespace LCDText2
 			//---------------------------
 			if (isServer)
 			{
-				recievedMessageInternal(output, 0,  length, 2, 0);
+				recievedMessageInternal(video, 0,  length, 2, 0);
 				return;
 			}
 			if (!online)
@@ -142,24 +147,40 @@ namespace LCDText2
 			var pheader = MyAPIGateway.Utilities.SerializeToBinary(header);
 			var message = new byte[length + pheader.Length];//REEEE
 			Buffer.BlockCopy(pheader, 0, message, 0, pheader.Length);
-			Buffer.BlockCopy(output, 0, message, pheader.Length, length);
+			Buffer.BlockCopy(video, 0, message, pheader.Length, length);
 			MyAPIGateway.Multiplayer.SendMessageToServer(videostreamcommand, message);
 		}
 
-
+		byte[] encodingbuffer = new byte[1]; // will grow to match. 
 		/// <summary>
 		/// Begin frame encoding code below
 		/// </summary>
-		byte[] EncodeImageToChar(byte[] encodedFrame)
+		int EncodeImageToChar(byte[] encodedFrame, int offset)
 		{
-			byte[] output = new byte[encodedFrame.Length/3]; //fix allocation! why not write back to the original buffer then set length. 
-			Parallel.For(0, encodedFrame.Length, i => {
-				byte r = encodedFrame[(i * 3) + 2];
-				byte g = encodedFrame[(i * 3) + 1];
-				byte b = encodedFrame[(i * 3)];
-				BitConverter.GetBytes((ushort)ColorToChar(r, g, b)).CopyTo(output, i * 2);
+			int encodedlength = encodedFrame.Length / 3 * 2 + offset;
+			if (encodingbuffer.Length < encodedlength)
+			{
+				encodingbuffer = new byte[encodedlength];
+			}
+			int control = BitConverter.ToInt32(encodedFrame, offset);
+			ushort stride = BitConverter.ToUInt16(encodedFrame, offset + sizeof(int));
+			ushort height = BitConverter.ToUInt16(encodedFrame, offset + sizeof(uint));
+			offset += sizeof(int) + sizeof(uint) * 2;
+			int newstride = (stride * 2) / 3;
+			Parallel.For(0, height, i => {
+				int adjust = offset + i * stride;
+				int encadjust = offset + i * newstride;
+				for(int ii = 0; ii + 2 < stride; ii+= 3)
+				{
+					byte r = encodedFrame[adjust + (ii * 3) + 2];
+					byte g = encodedFrame[adjust + (ii * 3) + 1];
+					byte b = encodedFrame[adjust + (ii * 3)];
+					BitConverter.GetBytes((ushort)ColorToChar(r, g, b)).CopyTo(encodingbuffer, encadjust + ii * 2);
+				}
+
 			});
-			return output;
+			Buffer.BlockCopy(encodingbuffer, offset, encodedFrame, offset, encodedlength);
+			return encodedlength;
 		}
 		char ColorToChar(byte r, byte g, byte b)
 		{
