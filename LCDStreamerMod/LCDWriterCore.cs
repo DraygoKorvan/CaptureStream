@@ -13,6 +13,7 @@ using System.Runtime.InteropServices;
 using VRage;
 using SENetworkAPI;
 using System.Collections.Concurrent;
+using LCDText2;
 
 namespace LocalLCD
 {
@@ -28,6 +29,11 @@ namespace LocalLCD
 		public const string NETWORKNAME = "LCDPlayer";
 		ConcurrentDictionary<ulong, List<LocalLCDWriterComponent>> subscribers = new ConcurrentDictionary<ulong, List<LocalLCDWriterComponent>>();
 
+		public LCDWriterCore()
+		{
+			instance = this;
+		}
+
 		public override void UpdateAfterSimulation()
 		{
 			if (!NetworkAPI.IsInitialized)
@@ -38,13 +44,27 @@ namespace LocalLCD
 			{
 				HudAPI = new HudAPIv2(RegisterHudAPI);
 				init = true;
-				//LocalLCDWriterComponent.CreateTerminalControls();
 				isServer = MyAPIGateway.Multiplayer.IsServer;
 				isDedicated = isServer && MyAPIGateway.Utilities.IsDedicated;
 			}
 		}
 
 		private void RegisterHudAPI()
+		{
+
+		}
+
+		internal void Unsubscribe(LocalLCDWriterComponent localLCDWriterComponent, ulong arg1)
+		{
+
+		}
+
+		internal void Subscribe(LocalLCDWriterComponent localLCDWriterComponent, ulong arg2)
+		{
+			
+		}
+
+		internal void AddBuffer(VideoBuffer videoBuffer)
 		{
 
 		}
