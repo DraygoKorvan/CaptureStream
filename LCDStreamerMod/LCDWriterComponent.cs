@@ -27,31 +27,11 @@ namespace LocalLCD
 	{
 		MyObjectBuilder_EntityBase ObjectBuilder;
 		IMyTextPanel TextPanel;
-		MyStringId PanelType;
 		NetSync<ulong> CurrentBuffer;
-		MyDefinitionId TexDef;
 		public VideoPlayerScript Script;
-		bool init = false;
-		double m_Scale = 1.0d;
-		bool isInit = false;
 		long Selected = -1;
 
 		private static IMyTerminalControlCombobox ComboListBox;
-
-		public double Scale
-		{
-			get
-			{
-				return m_Scale;
-			}
-			private set
-			{
-				if(m_Scale != value)
-				{
-					m_Scale = value;
-				}
-			}
-		}
 
 		public static bool SupportsMultipleBlocks
 		{
@@ -81,7 +61,10 @@ namespace LocalLCD
 
 		private void Changed_Channel(ulong arg1, ulong arg2)
 		{
-			
+			if(arg1 > 1)
+				LCDWriterCore.instance.Unsubscribe(this, arg1);
+			if(arg2 > 1)
+				LCDWriterCore.instance.Subscribe(this, arg2);
 		}
 
 		public override void OnAddedToContainer()
@@ -94,12 +77,8 @@ namespace LocalLCD
 				CreateTerminalControls();
 			}
 			TextPanel = Entity as IMyTextPanel;
-			this.NeedsUpdate |= VRage.ModAPI.MyEntityUpdateEnum.EACH_10TH_FRAME | VRage.ModAPI.MyEntityUpdateEnum.EACH_FRAME | VRage.ModAPI.MyEntityUpdateEnum.EACH_100TH_FRAME;
+			this.NeedsUpdate |= VRage.ModAPI.MyEntityUpdateEnum.EACH_FRAME;
 			Script = new VideoPlayerScript(this.Entity as IMyTextPanel);
-
-
-
-
 		}
 
 		private void TextPanel_ChannelChanged(IMyTerminalBlock obj)
@@ -123,8 +102,6 @@ namespace LocalLCD
 			if (Selected == 0)
 			{
 				CurrentBuffer.Value = 1;
-
-				//TextDisplay.Message.Clear();
 				return;
 			}
 			if(Selected < Obj.Count)
@@ -133,7 +110,6 @@ namespace LocalLCD
 				if(SteamIdGetter.TryGetValue(Selected, out channel))
 				{
 					CurrentBuffer.Value = channel;
-
 				}
 
 			}
@@ -205,13 +181,17 @@ namespace LocalLCD
 			
 		}
 		static Dictionary<long, ulong> SteamIdGetter = new Dictionary<long, ulong>();
+		static Dictionary<ulong, long> LineGetter = new Dictionary<ulong, long>();
 		public static void AddLineItem(MyStringId Item, ulong steamid)
 		{
+			if (LineGetter.ContainsKey(steamid))
+				return;
 			var LineItem = new MyTerminalControlComboBoxItem();
 			LineItem.Key = Obj.Count;
 			LineItem.Value = Item;
 			Obj.Add(LineItem);
 			SteamIdGetter.Add(LineItem.Key, steamid);
+			LineGetter.Add(steamid, LineItem.Key);
 		}
 
 		private static long Getter(IMyTerminalBlock block)
@@ -285,6 +265,9 @@ namespace LocalLCD
 
 		public override void MarkForClose()
 		{
+			if (Selected > 0)
+				LCDWriterCore.instance.Unsubscribe(this, CurrentBuffer.Value);
+			
 			if (Script != null)
 				Script.Close();
 		}

@@ -1,11 +1,15 @@
-﻿using System;
+﻿using LocalLCD;
+using System;
 
 namespace LCDText2
 {
 	public class VideoBuffer
 	{
 		public ulong steamid;
-
+		public VideoBuffer()
+		{
+			LCDWriterCore.instance.AddBuffer(this);
+		}
 		public struct AudioHeader
 		{
 			public int SampleRate;
