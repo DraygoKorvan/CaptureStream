@@ -124,11 +124,16 @@ namespace LCDText2
 			//---------------------------
 			//------- PREFORMAT GOES HERE
 			//---------------------------
+
+			byte[] output = EncodeImageToChar(video);
+			//int newLength = output.Length; set the new length of the frame?
+
+			//---------------------------
 			//------- END PREFORMAT------
 			//---------------------------
 			if (isServer)
 			{
-				recievedMessageInternal(video, 0,  length, 2, 0);
+				recievedMessageInternal(output, 0,  length, 2, 0);
 				return;
 			}
 			if (!online)
@@ -137,9 +142,31 @@ namespace LCDText2
 			var pheader = MyAPIGateway.Utilities.SerializeToBinary(header);
 			var message = new byte[length + pheader.Length];//REEEE
 			Buffer.BlockCopy(pheader, 0, message, 0, pheader.Length);
-			Buffer.BlockCopy(video, 0, message, pheader.Length, length);
+			Buffer.BlockCopy(output, 0, message, pheader.Length, length);
 			MyAPIGateway.Multiplayer.SendMessageToServer(videostreamcommand, message);
 		}
+
+
+		/// <summary>
+		/// Begin frame encoding code below
+		/// </summary>
+		byte[] EncodeImageToChar(byte[] encodedFrame)
+		{
+			byte[] output = new byte[encodedFrame.Length/3];
+			Parallel.For(0, encodedFrame.Length, i => {
+				byte r = encodedFrame[(i * 3) + 2];
+				byte g = encodedFrame[(i * 3) + 1];
+				byte b = encodedFrame[(i * 3)];
+				BitConverter.GetBytes((ushort)ColorToChar(r, g, b)).CopyTo(output, i * 2);
+			});
+			return output;
+		}
+		char ColorToChar(byte r, byte g, byte b)
+		{
+			return (char)((uint)0x3000 + ((r >> 3) << 10) + ((g >> 3) << 5) + (b >> 3));
+		}
+
+
 		int tick = 0;
 		private List<IMyPlayer> oldplayers = new List<IMyPlayer>();
 		private List<IMyPlayer> idents = new List<IMyPlayer>();
