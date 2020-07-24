@@ -166,7 +166,8 @@ namespace LCDText2
 			ushort stride = BitConverter.ToUInt16(encodedFrame, offset + sizeof(int));
 			ushort height = BitConverter.ToUInt16(encodedFrame, offset + sizeof(uint));
 			offset += sizeof(int) + sizeof(uint) * 2;
-			int newstride = (stride * 2) / 3;
+			ushort newstride = (ushort)((stride / 3) *2);
+			newstride += (ushort)(newstride % 4);
 			Parallel.For(0, height, i => {
 				int adjust = offset + i * stride;
 				int encadjust = offset + i * newstride;
@@ -175,16 +176,17 @@ namespace LCDText2
 					byte r = encodedFrame[adjust + (ii * 3) + 2];
 					byte g = encodedFrame[adjust + (ii * 3) + 1];
 					byte b = encodedFrame[adjust + (ii * 3)];
-					BitConverter.GetBytes((ushort)ColorToChar(r, g, b)).CopyTo(encodingbuffer, encadjust + ii * 2);
+					BitConverter.GetBytes(ColorToChar(r, g, b)).CopyTo(encodingbuffer, encadjust + ii * 2);
 				}
 
 			});
+			Buffer.BlockCopy(BitConverter.GetBytes(newstride), 0, encodedFrame, offset + sizeof(int), sizeof(ushort));
 			Buffer.BlockCopy(encodingbuffer, offset, encodedFrame, offset, encodedlength);
 			return encodedlength;
 		}
-		char ColorToChar(byte r, byte g, byte b)
+		ushort ColorToChar(byte r, byte g, byte b)
 		{
-			return (char)((uint)0x3000 + ((r >> 3) << 10) + ((g >> 3) << 5) + (b >> 3));
+			return (ushort)((uint)0x3000 + ((r >> 3) << 10) + ((g >> 3) << 5) + (b >> 3));
 		}
 
 
