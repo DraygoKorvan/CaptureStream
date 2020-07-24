@@ -157,17 +157,20 @@ namespace LCDText2
 		/// </summary>
 		int EncodeImageToChar(byte[] encodedFrame, int offset)
 		{
-			int encodedlength = encodedFrame.Length / 3 * 2 + offset;
-			if (encodingbuffer.Length < encodedlength)
-			{
-				encodingbuffer = new byte[encodedlength];
-			}
+			
+
 			int control = BitConverter.ToInt32(encodedFrame, offset);
 			ushort stride = BitConverter.ToUInt16(encodedFrame, offset + sizeof(int));
 			ushort height = BitConverter.ToUInt16(encodedFrame, offset + sizeof(uint));
 			offset += sizeof(int) + sizeof(uint) * 2;
 			ushort newstride = (ushort)((stride / 3) *2);
 			newstride += (ushort)(newstride % 4);
+			int encodedlength = newstride * height + offset;
+			if (encodingbuffer.Length < encodedlength)
+			{
+				encodingbuffer = new byte[encodedlength];
+			}
+
 			Parallel.For(0, height, i => {
 				int adjust = offset + i * stride;
 				int encadjust = offset + i * newstride;
@@ -178,7 +181,6 @@ namespace LCDText2
 					byte b = encodedFrame[adjust + (ii * 3)];
 					BitConverter.GetBytes(ColorToChar(r, g, b)).CopyTo(encodingbuffer, encadjust + ii * 2);
 				}
-
 			});
 			Buffer.BlockCopy(BitConverter.GetBytes(newstride), 0, encodedFrame, offset + sizeof(int), sizeof(ushort));
 			Buffer.BlockCopy(encodingbuffer, offset, encodedFrame, offset, encodedlength);
