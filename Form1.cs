@@ -474,6 +474,8 @@ namespace CaptureStream
 				playback = true;
 		}
 
+
+
 		private void onClosing(object sender, FormClosingEventArgs e)
 		{
 			running = false;

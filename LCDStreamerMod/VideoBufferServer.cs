@@ -164,7 +164,7 @@ namespace LCDText2
 			ushort height = BitConverter.ToUInt16(encodedFrame, offset + sizeof(uint));
 			offset += sizeof(int) + sizeof(uint) * 2;
 			ushort newstride = (ushort)((stride / 3) *2);
-			newstride += (ushort)(newstride % 4);
+			newstride += (ushort)(newstride % 2);
 			int encodedlength = newstride * height + offset;
 			if (encodingbuffer.Length < encodedlength)
 			{
