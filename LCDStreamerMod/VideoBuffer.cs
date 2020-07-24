@@ -6,6 +6,7 @@ namespace LCDText2
 	public class VideoBuffer
 	{
 		public ulong steamid;
+		public long nextFrame = 0;
 		public VideoBuffer()
 		{
 			LCDWriterCore.instance.AddBuffer(this);

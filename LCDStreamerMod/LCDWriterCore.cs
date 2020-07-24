@@ -14,6 +14,7 @@ using VRage;
 using SENetworkAPI;
 using System.Collections.Concurrent;
 using LCDText2;
+using System.Diagnostics;
 
 namespace LocalLCD
 {
@@ -27,12 +28,15 @@ namespace LocalLCD
 		public bool isServer = false;
 		public const ushort COMID = 8723;
 		public const string NETWORKNAME = "LCDPlayer";
-		ConcurrentDictionary<ulong, List<LocalLCDWriterComponent>> subscribers = new ConcurrentDictionary<ulong, List<LocalLCDWriterComponent>>();
-
+		Dictionary<ulong, VideoController> controllers = new Dictionary<ulong, VideoController>();
 		public LCDWriterCore()
 		{
 			instance = this;
 		}
+
+		Stopwatch time = new Stopwatch();
+
+
 
 		public override void UpdateAfterSimulation()
 		{
@@ -46,6 +50,12 @@ namespace LocalLCD
 				init = true;
 				isServer = MyAPIGateway.Multiplayer.IsServer;
 				isDedicated = isServer && MyAPIGateway.Utilities.IsDedicated;
+				time.Start();
+			}
+
+			foreach(var controller in controllers)
+			{
+				controller.Value.SendUpdate(time.ElapsedTicks);
 			}
 		}
 
@@ -54,19 +64,50 @@ namespace LocalLCD
 
 		}
 
-		internal void Unsubscribe(LocalLCDWriterComponent localLCDWriterComponent, ulong arg1)
+		internal void Unsubscribe(LocalLCDWriterComponent localLCDWriterComponent, ulong steamid)
 		{
-
+			VideoController controller;
+			if (controllers.TryGetValue(steamid, out controller))
+			{
+				controller.UnSubscribe(localLCDWriterComponent);
+			}
 		}
 
-		internal void Subscribe(LocalLCDWriterComponent localLCDWriterComponent, ulong arg2)
+		internal void Subscribe(LocalLCDWriterComponent localLCDWriterComponent, ulong steamid)
 		{
-			
+			VideoController controller;
+			if (controllers.TryGetValue(steamid, out controller))
+			{
+				controller.Subscribe(localLCDWriterComponent, time.ElapsedTicks);
+			}
 		}
 
 		internal void AddBuffer(VideoBuffer videoBuffer)
 		{
+			VideoController Component;
+			if (controllers.TryGetValue(videoBuffer.steamid, out Component))
+			{
+				Component = new VideoController(videoBuffer);
 
+			}
+			else
+			{
+				Component = new VideoController(videoBuffer);
+				controllers.Add(videoBuffer.steamid, Component);
+				LocalLCDWriterComponent.AddLineItem(MyStringId.GetOrCompute(videoBuffer.steamid.ToString()), videoBuffer.steamid);
+			}
+			if (time.IsRunning)
+			{
+				Component.SetRunTime(time.ElapsedTicks);
+			}
+		}
+
+		protected override void UnloadData()
+		{
+			if (time.IsRunning)
+				time.Stop();
+			time = null;
+			base.UnloadData();
 		}
 	}
 }

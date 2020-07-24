@@ -152,7 +152,7 @@ namespace LCDText2
 		/// </summary>
 		byte[] EncodeImageToChar(byte[] encodedFrame)
 		{
-			byte[] output = new byte[encodedFrame.Length/3];
+			byte[] output = new byte[encodedFrame.Length/3]; //fix allocation! why not write back to the original buffer then set length. 
 			Parallel.For(0, encodedFrame.Length, i => {
 				byte r = encodedFrame[(i * 3) + 2];
 				byte g = encodedFrame[(i * 3) + 1];

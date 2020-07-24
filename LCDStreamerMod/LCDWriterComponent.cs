@@ -67,6 +67,11 @@ namespace LocalLCD
 				LCDWriterCore.instance.Subscribe(this, arg2);
 		}
 
+		internal void PlayAudio(byte[] audioframes, int bytes, VideoBuffer.AudioHeader audioHeader)
+		{
+			Script.PlayAudio(audioframes, bytes, audioHeader);
+		}
+
 		public override void OnAddedToContainer()
 		{
 			if (this.Entity.Physics == null)
@@ -115,22 +120,11 @@ namespace LocalLCD
 			}
         }
 
-		public override void UpdateBeforeSimulation()
+		internal void PlayNextFrame(string s_frame)
 		{
-			if (LCDWriterCore.instance == null || LCDWriterCore.instance.isDedicated)
-				return;
-
-
-			if (Selected <= 0)
-			{
-				return;
-			}
-			if (Script == null)
-			{
-				return;
-			}
-			Script.Update();
+			Script.PlayNextFrame(s_frame);
 		}
+
 
 
 		internal void SetChannel(ulong currentChannel)
@@ -140,15 +134,6 @@ namespace LocalLCD
 			TextPanel_ChannelChanged(this.Entity as IMyTerminalBlock);
         }
 
-
-
-		internal void UpdateScript()
-		{
-			if(Selected == -1)
-			{
-				TextPanel_ChannelChanged(this.Entity as IMyTerminalBlock);
-            }
-		}
 
 
 		public override void OnRemovedFromScene()
