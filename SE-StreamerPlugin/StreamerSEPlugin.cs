@@ -46,8 +46,10 @@ namespace SE_StreamerPlugin
 				return;
 			}
 			RecorderApplicationthread = new Thread(StartApplication);
+			RecorderApplicationthread.IsBackground = true;
 			RecorderApplicationthread.Start();
 			CommunicationThread = new Thread(ModCommunication);
+			CommunicationThread.IsBackground = true;
 			CommunicationThread.Start();
 			process = Process.GetCurrentProcess();
 			mainthread = Thread.CurrentThread;
@@ -70,6 +72,8 @@ namespace SE_StreamerPlugin
 			//MyLog.Default.WriteLineAndConsole("Plugin - Update " + (SendAudio == null).ToString() + (SendVideo == null).ToString() );
 			if (MyAPIGateway.Session != null)
 			{
+
+
 				//MyLog.Default.WriteLineAndConsole("Plugin - Got Session ");
 				if (!registerevents)
 				{
@@ -81,6 +85,9 @@ namespace SE_StreamerPlugin
 			}
 			else
 			{
+				SendAudio = null;
+				SendVideo = null;
+				Control = null;
 				MyAPIUtilities.Static.UnregisterMessageHandler(videostreamcommand, RequestStreams);
 				registerevents = false;
 			}
@@ -111,6 +118,11 @@ namespace SE_StreamerPlugin
 
 							Audio.Read(transferabuffer, 0, audioheader.Length());
 							streamaudioheader = audioheader.getFromBytes(transferabuffer);
+							MyLog.Default.WriteLine("Plugin: ModCommunication - Got Audio Header");
+							MyLog.Default.WriteLine($"{streamaudioheader.SampleRate}");
+							MyLog.Default.WriteLine($"{streamaudioheader.Channels}");
+							MyLog.Default.WriteLine($"{streamaudioheader.BitsPerSample}");
+							MyLog.Default.WriteLine($"{streamaudioheader.AverageBytesPerSecond}");
 							haveaudioheader = true;
 							MyLog.Default.WriteLine("Plugin: ModCommunication - Sending Audio header" + audioheader.Length().ToString());
 							SendAudio?.Invoke(transferabuffer, audioheader.Length());
@@ -205,15 +217,6 @@ namespace SE_StreamerPlugin
 					break;
 				Thread.Sleep(0);
 			}
-			if(form != null)
-			{
-				if(form.running)
-					form.Close();
-			}
-
-			
-
-
 		}
 
 		readonly long videostreamcommand = 20982309832901;

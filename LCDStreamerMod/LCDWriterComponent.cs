@@ -71,7 +71,8 @@ namespace LocalLCD
 
 		private void Changed_Channel(ulong arg1, ulong arg2)
 		{
-			if(arg1 > 1)
+			MyAPIGateway.Utilities.ShowMessage("Player", $"Changed Channel {arg1} -> {arg2}");
+			if (arg1 > 1)
 				LCDWriterCore.instance.Unsubscribe(this, arg1);
 			if(arg2 > 1)
 				LCDWriterCore.instance.Subscribe(this, arg2);
@@ -122,6 +123,7 @@ namespace LocalLCD
 				ulong channel;
 				if(SteamIdGetter.TryGetValue(Selected, out channel))
 				{
+					MyAPIGateway.Utilities.ShowMessage("Player", "Selected Channel 2");
 					CurrentBuffer.Value = channel;
 				}
 
@@ -177,7 +179,9 @@ namespace LocalLCD
 				LineItem.Key = 0;
 				LineItem.Value = None;
 				Obj.Add(LineItem);
-            }
+				SteamIdGetter.Add(LineItem.Key, 0);
+				LineGetter.Add(0, LineItem.Key);
+			}
 			
 		}
 		static Dictionary<long, ulong> SteamIdGetter = new Dictionary<long, ulong>();

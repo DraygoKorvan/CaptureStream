@@ -17,6 +17,7 @@ namespace LocalLCD
 		static long videoupdate = Stopwatch.Frequency / 20;
 		byte[] videoframes;
 		int videoptr = 0;
+		int videobytes = 0;
 		byte[] audioframes;
 
 		List<LocalLCDWriterComponent> subscribers = new List<LocalLCDWriterComponent>();
@@ -73,18 +74,24 @@ namespace LocalLCD
 				if (videoBuffer.videoHeader.framerate == 0)
 					return;
 				nextVideoFrame += tickspersecond / videoBuffer.videoHeader.framerate;
-				if (videoframes == null || videoptr >= videoframes.Length)
+				if (videoframes == null || videoptr >= videobytes)
 				{
-					var bytes = videoBuffer.ReadVideo(out videoframes);
-					MyLog.Default.WriteLineAndConsole($"VideoController Send-Update Video Second: Subs - {subscribers.Count}");
-					if (bytes == 0)
+					videobytes = videoBuffer.ReadVideo(out videoframes);
+					if (videobytes == 0)
 						return;
+					MyLog.Default.WriteLineAndConsole($"VideoController Send-Update Video Second: Subs - {subscribers.Count}");
 					videoptr = 0;
 				}
 				int control = BitConverter.ToInt32(videoframes, videoptr);
 				ushort stride = BitConverter.ToUInt16(videoframes, videoptr + sizeof(int));
 				ushort height = BitConverter.ToUInt16(videoframes, videoptr + sizeof(int) + sizeof(ushort));
+				MyLog.Default.WriteLine($"Video Packet Header: c {control} s {stride} h {height}");
 				videoptr += sizeof(int) + sizeof(ushort) * 2;
+				if (control == 1)
+				{
+					return;
+
+				}
 				var length = stride * height;
 				string s_frame = getString(videoframes, videoptr, stride, height);
 				//convert to string
