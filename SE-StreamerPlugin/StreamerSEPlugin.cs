@@ -158,11 +158,16 @@ namespace SE_StreamerPlugin
 							var read = Video.Read(transfervbuffer, 0, sizeof(int) + sizeof(ushort) * 2);
 							while(read < sizeof(int) + sizeof(ushort) * 2)
 							{
-								read += Video.Read(transfervbuffer, read, read - sizeof(int) + sizeof(ushort) * 2);
+								read += Video.Read(transfervbuffer, read, sizeof(int) + sizeof(ushort) * 2 - read);
+								if (process.HasExited)
+									break;
 							}
 							int control = BitConverter.ToInt32(transfervbuffer, 0);
+
 							ushort stride = BitConverter.ToUInt16(transfervbuffer, sizeof(int));
 							ushort height = BitConverter.ToUInt16(transfervbuffer, sizeof(ushort) + sizeof(int));
+
+							MyLog.Default.WriteLine($"Video Packet Header: c {control} s {stride} h {height}");
 							if (control == 1)
 							{
 								MyLog.Default.WriteLine("Plugin: ModCommunication - Sending Video header EOS " + (sizeof(int) + sizeof(ushort) * 2).ToString());
@@ -179,7 +184,14 @@ namespace SE_StreamerPlugin
 								transfervbuffer = new byte[bytes + sizeof(int) + sizeof(ushort) * 2];
 								Buffer.BlockCopy(oldbuffer, 0, transfervbuffer, 0, sizeof(int) + sizeof(ushort) * 2);
 							}
-							var rest = Video.Read(transfervbuffer, sizeof(int) + sizeof(ushort) * 2, bytes);
+							int rest = 0;
+							do
+							{
+								rest += Video.Read(transfervbuffer, rest + sizeof(int) + sizeof(ushort) * 2, bytes - rest);
+								if (process.HasExited)
+									break;
+							}
+							while (rest < bytes);
 							MyLog.Default.WriteLine("Plugin: ModCommunication - Sending Video - " + (rest + sizeof(int) + sizeof(ushort) * 2).ToString());
 							SendVideo?.Invoke(transfervbuffer, bytes + sizeof(int) + sizeof(ushort) * 2);
 						}

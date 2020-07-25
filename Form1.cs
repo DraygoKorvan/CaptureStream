@@ -330,10 +330,10 @@ namespace CaptureStream
 						using (Graphics cv = Graphics.FromImage(bmpbuffer))
 						{
 							cv.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.NearestNeighbor;
-							cv.DrawImage(bmpreader, 0, 0, bmpbuffer.Width, bmpbuffer.Height);
+							cv.DrawImage(bmpreader, 0, 0, recordwidth, recordheight);
 						}
 
-						System.Drawing.Imaging.BitmapData bmpData = bmpbuffer.LockBits(new Rectangle(0, 0, bmpbuffer.Width, bmpbuffer.Height), System.Drawing.Imaging.ImageLockMode.ReadOnly, bmpbuffer.PixelFormat);
+						System.Drawing.Imaging.BitmapData bmpData = bmpbuffer.LockBits(new Rectangle(0, 0, recordwidth, recordheight), System.Drawing.Imaging.ImageLockMode.ReadOnly, bmpbuffer.PixelFormat);
 
 						IntPtr ptr = bmpData.Scan0;
 						int stride = Math.Abs(bmpData.Stride);
@@ -509,7 +509,7 @@ namespace CaptureStream
 			if (int.TryParse(((TextBox)sender).Text, out int newval))
 			{
 				if (newval > 0)
-					recordheight = newval + newval % 4;
+					recordheight = newval;
 			}
 		}
 

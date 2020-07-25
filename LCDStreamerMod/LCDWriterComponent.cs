@@ -134,7 +134,8 @@ namespace LocalLCD
 		}
 		internal void PlayNextFrame(string s_frame)
 		{
-			if(Script != null)
+			MyLog.Default.WriteLineAndConsole($"LocalLCDWriterComponent PlayNextFrame- {Script != null}");
+			if (Script != null)
 				Script.PlayNextFrame(s_frame);
 		}
 

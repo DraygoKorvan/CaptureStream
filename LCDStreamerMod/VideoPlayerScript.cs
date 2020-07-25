@@ -21,6 +21,7 @@ using VRage.ModAPI;
 using VRage.Game.ModAPI;
 using VRage.ObjectBuilders;
 using VRage;
+using VRage.Utils;
 
 namespace LocalLCD
 {
@@ -172,9 +173,14 @@ namespace LocalLCD
 		{
 
 			if (fake == null)
+			{
+				MyLog.Default.WriteLineAndConsole($"VideoPlayerScript InitFake");
 				InitFake();
+			}
+				
 			if(surface != null)
 			{
+				MyLog.Default.WriteLineAndConsole($"VideoPlayerScript WriteText");
 				surface.WriteText(chars);
 			}
 		}

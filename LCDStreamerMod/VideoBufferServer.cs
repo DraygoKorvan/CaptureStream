@@ -148,7 +148,7 @@ namespace LCDText2
 			}
 			else
 			{
-				length = EncodeImageToChar(video);
+				length = EncodeImageToChar(video, length);
 				
 			}
 
@@ -177,38 +177,48 @@ namespace LCDText2
 		/// <summary>
 		/// Begin frame encoding code below
 		/// </summary>
-		int EncodeImageToChar(byte[] encodedFrame)
+		int EncodeImageToChar(byte[] encodedFrame, int length)
 		{
-			if (sizeof(int) + sizeof(ushort) >= encodedFrame.Length)
+			if (encodedFrame.Length < sizeof(int) + sizeof(ushort) * 2)
 				return encodedFrame.Length;
 			int control = BitConverter.ToInt32(encodedFrame, 0 );
 			ushort stride = BitConverter.ToUInt16(encodedFrame,   sizeof(int));
-			ushort height = BitConverter.ToUInt16(encodedFrame,   sizeof(ushort));
+			ushort height = BitConverter.ToUInt16(encodedFrame, sizeof(int) + sizeof(ushort));
+			//MyLog.Default.WriteLine($"Video Packet Header: c {control} s {stride} h {height}");
 			var offset = sizeof(int) + sizeof(ushort) * 2;
-			MyLog.Default.WriteLine("Mod - EncodeImageToChar height " + height.ToString());
 			ushort newstride = (ushort)((stride / 3) *2);
 			newstride += (ushort)(newstride % 2);
-			MyLog.Default.WriteLine("Mod - EncodeImageToChar newstride " + newstride.ToString());
+			//840
+			//MyLog.Default.WriteLine("Mod - EncodeImageToChar newstride " + newstride.ToString());
 			int encodedlength = newstride * height + offset;
-			MyLog.Default.WriteLine("Mod - EncodeImageToChar encodeln " + encodedlength.ToString());
+			//MyLog.Default.WriteLine("Mod - EncodeImageToChar encodeln " + encodedlength.ToString());
+			//199928
 			if (encodingbuffer.Length < encodedlength)
 			{
 				encodingbuffer = new byte[encodedlength];
 			}
-		
-			MyAPIGateway.Parallel.For(0, height, i => {
+			//len 299888
+			//encodeln 199928
+			MyAPIGateway.Parallel.For(0, height - 1, i => {
+				//237
 				int adjust = offset + i * stride;
+				//adj 8 + 237 * 1260
+				//adj = 298628
 				int encadjust = i * newstride;
-				for(int ii = 0; ii + 2 < stride; ii+= 3)
+			//encadj 237 * 840
+			//encadj 199080
+				for (int ii = 0, eii = 0 ; ii + 2 < stride; ii+= 3, eii += 2)
 				{
+					//ii = 1257
+					//adj + ii 299885
 					byte r = encodedFrame[adjust + ii + 2];
 					byte g = encodedFrame[adjust + ii + 1];
 					byte b = encodedFrame[adjust + ii];
-					BitConverter.GetBytes(ColorToChar(r, g, b)).CopyTo(encodingbuffer, encadjust + ii * 2);
+					BitConverter.GetBytes(ColorToChar(r, g, b)).CopyTo(encodingbuffer, encadjust + eii);
 				}
 			});
-			Buffer.BlockCopy(BitConverter.GetBytes(newstride), 0, encodedFrame, offset + sizeof(int), sizeof(ushort));
-			Buffer.BlockCopy(encodingbuffer, 0, encodedFrame, offset, encodedlength);
+			Buffer.BlockCopy(BitConverter.GetBytes(newstride), 0, encodedFrame, sizeof(int) + sizeof(ushort), sizeof(ushort));
+			Buffer.BlockCopy(encodingbuffer, 0, encodedFrame, offset, encodedlength - offset);
 			return encodedlength + offset;
 		}
 		ushort ColorToChar(byte r, byte g, byte b)

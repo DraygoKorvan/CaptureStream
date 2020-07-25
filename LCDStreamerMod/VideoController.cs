@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using VRage.Utils;
 
 namespace LocalLCD
 {
@@ -34,6 +35,7 @@ namespace LocalLCD
 
 		internal void Subscribe(LocalLCDWriterComponent localLCDWriterComponent, long elapsedTicks)
 		{
+			MyLog.Default.WriteLineAndConsole($"VideoController Subscribe {localLCDWriterComponent.Entity.EntityId}");
 			if (subscribers.Count == 0)
 				SetRunTime(elapsedTicks);
 			if (subscribers.Contains(localLCDWriterComponent))
@@ -43,6 +45,7 @@ namespace LocalLCD
 
 		internal void UnSubscribe(LocalLCDWriterComponent localLCDWriterComponent)
 		{
+			MyLog.Default.WriteLineAndConsole($"VideoController UnSubscribe {localLCDWriterComponent.Entity.EntityId}");
 			if (subscribers.Contains(localLCDWriterComponent))
 				return;
 			subscribers.Remove(localLCDWriterComponent);
@@ -56,8 +59,9 @@ namespace LocalLCD
 				var bytes = videoBuffer.ReadAudio(out audioframes);
 				if(bytes != 0)
 				{
+					MyLog.Default.WriteLineAndConsole($"VideoController Send-Update Audio Second: Subs - {subscribers.Count}");
 					//do process.
-					foreach(var lcd in subscribers)
+					foreach (var lcd in subscribers)
 					{
 						lcd.PlayAudio(audioframes, bytes, videoBuffer.audioHeader);
 					}
@@ -72,6 +76,7 @@ namespace LocalLCD
 				if (videoframes == null || videoptr >= videoframes.Length)
 				{
 					var bytes = videoBuffer.ReadVideo(out videoframes);
+					MyLog.Default.WriteLineAndConsole($"VideoController Send-Update Video Second: Subs - {subscribers.Count}");
 					if (bytes == 0)
 						return;
 					videoptr = 0;
