@@ -59,96 +59,108 @@ namespace SE_StreamerPlugin
 		byte[] transfervbuffer = new byte[300000];
 		public void Update()
 		{
-			MyLog.Default.WriteLineAndConsole("Status: " + CommunicationThread.IsAlive.ToString());
-		
+			//MyLog.Default.WriteLineAndConsole("Status: " + CommunicationThread.ThreadState.ToString());
+
+
+
 		}
 
 		public void ModCommunication()
 		{
-			while(RecorderApplicationthread.IsAlive)
+			while(true)
 			{
-				if (MyAPIGateway.Session != null)
+				try
 				{
-					if (!registerevents)
+					if (MyAPIGateway.Session != null)
 					{
-						MyAPIUtilities.Static.RegisterMessageHandler(videostreamcommand, RequestStreams);
-						//MyAPIGateway.Session.OnSessionReady += Session_OnSessionReady;
-						registerevents = true;
-					}
-				}
-				else
-				{
-					MyAPIUtilities.Static.UnregisterMessageHandler(videostreamcommand, RequestStreams);
-					registerevents = false;
-				}
-				if (Audio == null || Video == null)
-				{
-					Audio = new AnonymousPipeClientStream(PipeDirection.In, CaptureStreamForm.AudioStream.GetClientHandleAsString());
-					Video = new AnonymousPipeClientStream(PipeDirection.In, CaptureStreamForm.VideoStream.GetClientHandleAsString());
-					return;
-				}
-				if (Audio.CanRead)
-				{
-					if (!haveaudioheader)
-					{
-						Audio.Read(transferabuffer, 0, audioheader.Length());
-						streamaudioheader = audioheader.getFromBytes(transferabuffer);
-						SendAudio?.Invoke(transferabuffer, audioheader.Length());
-
+						if (!registerevents)
+						{
+							MyAPIUtilities.Static.RegisterMessageHandler(videostreamcommand, RequestStreams);
+							//MyAPIGateway.Session.OnSessionReady += Session_OnSessionReady;
+							registerevents = true;
+						}
 					}
 					else
 					{
-						Audio.Read(transferabuffer, 0, sizeof(int));
-						int bytes = BitConverter.ToInt32(transferabuffer, 0);
-						if (bytes == 0)
-						{
-							SendAudio?.Invoke(transferabuffer, sizeof(int));
-							haveaudioheader = false;//reset
-							return;
-						}
-						if (bytes + sizeof(int) > transferabuffer.Length)
-						{
-							var oldbuf = transferabuffer;
-							transferabuffer = new byte[bytes + sizeof(int)];//grow automatically. 
-							Buffer.BlockCopy(oldbuf, 0, transferabuffer, 0, 4);//move size header to new array. 
-						}
-						Audio.Read(transferabuffer, sizeof(int), bytes);
-						SendAudio?.Invoke(transferabuffer, bytes + sizeof(int));
+						MyAPIUtilities.Static.UnregisterMessageHandler(videostreamcommand, RequestStreams);
+						registerevents = false;
 					}
+					if (Audio == null || Video == null)
+					{
+						Audio = new AnonymousPipeClientStream(PipeDirection.In, CaptureStreamForm.AudioStream.GetClientHandleAsString());
 
+						Video = new AnonymousPipeClientStream(PipeDirection.In, CaptureStreamForm.VideoStream.GetClientHandleAsString());
+						continue;
+					}
+					if (Audio.CanRead)
+					{
+						if (!haveaudioheader)
+						{
+
+							Audio.Read(transferabuffer, 0, audioheader.Length());
+							streamaudioheader = audioheader.getFromBytes(transferabuffer);
+							SendAudio?.Invoke(transferabuffer, audioheader.Length());
+
+						}
+						else
+						{
+							Audio.Read(transferabuffer, 0, sizeof(int));
+							int bytes = BitConverter.ToInt32(transferabuffer, 0);
+							if (bytes == 0)
+							{
+								SendAudio?.Invoke(transferabuffer, sizeof(int));
+								haveaudioheader = false;//reset
+								continue;
+							}
+							if (bytes + sizeof(int) > transferabuffer.Length)
+							{
+								var oldbuf = transferabuffer;
+								transferabuffer = new byte[bytes + sizeof(int)];//grow automatically. 
+								Buffer.BlockCopy(oldbuf, 0, transferabuffer, 0, 4);//move size header to new array. 
+							}
+							Audio.Read(transferabuffer, sizeof(int), bytes);
+							SendAudio?.Invoke(transferabuffer, bytes + sizeof(int));
+						}
+
+					}
+					if (Video.CanRead)
+					{
+						if (!havevideoheader)
+						{
+							var read = Video.Read(transfervbuffer, 0, videoheader.Length());
+							streamvideoheader = videoheader.getFromBytes(transfervbuffer);
+							SendVideo?.Invoke(transfervbuffer, videoheader.Length());
+						}
+						else
+						{
+							var read = Video.Read(transfervbuffer, 0, sizeof(int) + sizeof(ushort) * 2);
+							int control = BitConverter.ToInt32(transfervbuffer, 0);
+							ushort stride = BitConverter.ToUInt16(transfervbuffer, sizeof(int));
+							ushort height = BitConverter.ToUInt16(transfervbuffer, sizeof(ushort) + sizeof(int));
+							if (control == 1)
+							{
+								SendVideo?.Invoke(transfervbuffer, sizeof(int) + sizeof(ushort) * 2);
+								havevideoheader = false;
+								continue;
+
+							}
+							int bytes = stride * height;
+							if (bytes + sizeof(int) + sizeof(ushort) * 2 > transfervbuffer.Length)
+							{
+								var oldbuffer = transfervbuffer;
+								transfervbuffer = new byte[bytes + sizeof(int) + sizeof(ushort) * 2];
+								Buffer.BlockCopy(oldbuffer, 0, transfervbuffer, 0, sizeof(int) + sizeof(ushort) * 2);
+							}
+							var rest = Video.Read(transfervbuffer, sizeof(int) + sizeof(ushort) * 2, bytes);
+							SendVideo?.Invoke(transfervbuffer, bytes + sizeof(int) + sizeof(ushort) * 2);
+						}
+					}
 				}
-				if (Video.CanRead)
+				catch (Exception ex)
 				{
-					if (!havevideoheader)
-					{
-						var read = Video.Read(transfervbuffer, 0, videoheader.Length());
-						streamvideoheader = videoheader.getFromBytes(transfervbuffer);
-						SendVideo?.Invoke(transfervbuffer, videoheader.Length());
-					}
-					else
-					{
-						var read = Video.Read(transfervbuffer, 0, sizeof(int) + sizeof(ushort) * 2);
-						int control = BitConverter.ToInt32(transfervbuffer, 0);
-						ushort stride = BitConverter.ToUInt16(transfervbuffer, sizeof(int));
-						ushort height = BitConverter.ToUInt16(transfervbuffer, sizeof(ushort) + sizeof(int));
-						if (control == 1)
-						{
-							SendVideo?.Invoke(transfervbuffer, sizeof(int) + sizeof(ushort) * 2);
-							havevideoheader = false;
-							return;
-
-						}
-						int bytes = stride * height;
-						if (bytes + sizeof(int) + sizeof(ushort) * 2 > transfervbuffer.Length)
-						{
-							var oldbuffer = transfervbuffer;
-							transfervbuffer = new byte[bytes + sizeof(int) + sizeof(ushort) * 2];
-							Buffer.BlockCopy(oldbuffer, 0, transfervbuffer, 0, sizeof(int) + sizeof(ushort) * 2);
-						}
-						var rest = Video.Read(transfervbuffer, sizeof(int) + sizeof(ushort) * 2, bytes);
-						SendVideo?.Invoke(transfervbuffer, bytes + sizeof(int) + sizeof(ushort) * 2);
-					}
+					MyLog.Default.WriteLineAndConsole(ex.ToString());
 				}
+				
 				Thread.Sleep(0);
 			}
 			

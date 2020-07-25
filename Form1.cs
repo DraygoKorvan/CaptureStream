@@ -76,8 +76,11 @@ namespace CaptureStream
 			drawingpen.Width = 1;
 			//bmppreview = new Bitmap(Rectangle.Width, Rectangle.Height);
 			//Preview.Image = bmppreview;
-			
-			
+			//VideoStream.WriteTimeout = 1000;
+			//AudioStream.WriteTimeout = 1000;
+
+	
+
 			Timer = new Stopwatch();
 
 			
@@ -159,6 +162,7 @@ namespace CaptureStream
 
 				outAudio.Write(new byte[1] { 0 }, 0, 1);
 				outAudio.Flush();
+				outAudio.WaitForPipeDrain();
 			}
 
 			//outAudio.Close();
@@ -204,6 +208,7 @@ namespace CaptureStream
 				outAudio.Write(BitConverter.GetBytes(bytesread / 2), 0 , sizeof(int));
 				outAudio.Write(output, 0, bytesread / 2);
 				outAudio.Flush();
+				outAudio.WaitForPipeDrain();
 				audiolengthmonitor = bytesread / 2;
 			}
 		}
@@ -301,6 +306,7 @@ namespace CaptureStream
 						var headerbytes = header.getBytes();
 						outFile.Write(headerbytes, 0, headerbytes.Length);
 						outFile.Flush();
+						outFile.WaitForPipeDrain();
 
 					}
 					if((framerate) * tick + framerateadd <= Timer.ElapsedTicks)
@@ -347,6 +353,7 @@ namespace CaptureStream
 						bmpbuffer.UnlockBits(bmpData);
 
 						outFile.Flush();
+						outFile.WaitForPipeDrain();
 						frameratemonitor = Timer.ElapsedTicks - start;
 					}
 				}
@@ -359,6 +366,8 @@ namespace CaptureStream
 						Timer.Stop();
 						control = 1;
 						outFile.Write(BitConverter.GetBytes(control), 0 , sizeof(int));
+						outFile.Flush();
+						outFile.WaitForPipeDrain();
 						outFile.Close();
 						//outFile = new BinaryWriter(new FileStream("mydata2", FileMode.Create));
 						audio.StopRecording();
