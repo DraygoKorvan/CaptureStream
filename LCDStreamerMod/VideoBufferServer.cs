@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using VRage;
 using VRage.Game.Components;
 using VRage.Game.ModAPI;
+using VRage.Utils;
 
 namespace LCDText2
 {
@@ -30,7 +31,7 @@ namespace LCDText2
 		{
 			if (MyAPIGateway.Utilities == null)
 				MyAPIGateway.Utilities = MyAPIUtilities.Static;
-
+			MyLog.Default.WriteLineAndConsole("Sending Registration Request to Plugin");
 			MyAPIGateway.Utilities.SendModMessage(20982309832901, new MyTuple<Action<byte[], int>, Action<byte[], int>, Action<int>>(RecieveAudioStream, RecieveVideoStream, RecieveControl));
 			if (MyAPIGateway.Session.OnlineMode == VRage.Game.MyOnlineModeEnum.OFFLINE)
 				return;
@@ -218,6 +219,7 @@ namespace LCDText2
 
 				if (tick == 60)
 				{
+					MyLog.Default.WriteLineAndConsole("Sending Registration Request to Plugin");
 					MyAPIGateway.Utilities.SendModMessage(20982309832901, new MyTuple<Action<byte[], int>, Action<byte[], int>, Action<int>>(RecieveAudioStream, RecieveVideoStream, RecieveControl));
 				}
 				if (tick == 60)
