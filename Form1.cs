@@ -53,7 +53,7 @@ namespace CaptureStream
 
 		WaveFormat sourceFormat;
 		long framerate = 1;
-		int playbackframerate = 20;
+		int playbackframerate = 16;
 		long frameremainder = 0;
 		private MMDevice device;
 		private WasapiOut blankplayer;

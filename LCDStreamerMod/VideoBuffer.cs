@@ -94,6 +94,8 @@ namespace LCDText2
 
 		int audioposition = 0;
 		int videoposition = 0;
+		int writeaudioposition = 0;
+		int writevideoposition = 0;
 		int audiosize = 0;
 		int videosize = 0;
 
@@ -149,7 +151,7 @@ namespace LCDText2
 			MyLog.Default.WriteLine($"Add Data to Audio Buffer {offset} {bytes} {length}");
 			if (bytes <= length)
 			{
-				int writepos = audioposition + audiosize % 10;
+				int writepos = writeaudioposition;
 				MyLog.Default.WriteLine($"Writing to {writepos} at {aptr[writepos]} row length {audioHeader.AverageBytesPerSecond} ");
 				if (aptr[writepos] + length < audioHeader.AverageBytesPerSecond)
 				{
@@ -172,12 +174,15 @@ namespace LCDText2
 					if (audiosize >= 9)
 					{
 						audiosize--;
-						if(videosize > 1)
-						videosize--;
+
+					}
+					else
+					{
+						writeaudioposition += 1 % 10;
 					}
 					if (paused && audiosize >= 5 && videosize >= 5)
 						paused = false;
-					writepos = audioposition + audiosize % 10;
+
 					aptr[writepos] = 0;
 					MyLog.Default.WriteLine($"Write {length} at {writepos} aptr {aptr[writepos]}");
 					Buffer.BlockCopy(obj, offset, audiostorage[writepos], aptr[writepos], length);
@@ -241,46 +246,33 @@ namespace LCDText2
 				InitializeVideoBuffer();//remap
 			}
 
-			int rowsize = (videoHeader.stride * videoHeader.height + sizeof(int) * 2) * videoHeader.framerate;
-			int writebytes = stride * height + sizeof(int) * 2;
-			MyLog.Default.WriteLine($"Writing to Video buffer? {writebytes} {length}");
+			
+			int writebytes = stride * height + sizeof(int) + sizeof(ushort) * 2;
+			
+			MyLog.Default.WriteLine($"Writing to Video buffer? {writebytes} {offset} {length}");
 			if (writebytes <= length)
 			{
-				int writepos = videoposition + videosize % 10;
-				
-				if (vptr[writepos] + writebytes < rowsize)
+				nextFrame++;
+				MyLog.Default.WriteLine($"Write {vptr[writevideoposition]} {writebytes}");
+				Buffer.BlockCopy(obj, offset, videostorage[writevideoposition], vptr[writevideoposition], writebytes);
+				vptr[writevideoposition] += writebytes;
+				if (nextFrame == videoHeader.framerate)
 				{
-					MyLog.Default.WriteLine($"Single Write {vptr[writepos]} {writebytes}");
-					Buffer.BlockCopy(obj, offset, videostorage[writepos], vptr[writepos], writebytes);
-					vptr[writepos] += writebytes;
-				}
-				else
-				{
-					int remainder = rowsize - vptr[writepos];
-					writebytes -= remainder;
-					MyLog.Default.WriteLine($"Double write {vptr[writepos]} {remainder}");
-					Buffer.BlockCopy(obj, offset, videostorage[writepos], vptr[writepos], remainder);
-					vptr[writepos] = rowsize;
-					videosize = videosize + 1;
+					nextFrame = 0;
+					videosize += 1;
 
 					if (videosize >= 9)
 					{
 						videosize--;
-						if (audiosize > 1)
-							audiosize--;
 					}
-					writepos = videoposition + videosize % 10;
-					vptr[writepos] = 0;
+					else
+					{
+						writevideoposition += 1 % 10;
+					}
+					
+					vptr[writevideoposition] = 0;
 					if (paused && audiosize >= 5 && videosize >= 5)
 						paused = false;
-					MyLog.Default.WriteLine($"Second Write? {vptr[writepos]} {writebytes}");
-					if (writebytes != 0)
-					{
-						
-						Buffer.BlockCopy(obj, offset, videostorage[writepos], vptr[writepos], writebytes);
-						vptr[writepos] += writebytes;
-					}
-
 				}
 			}
 		}
@@ -292,7 +284,7 @@ namespace LCDText2
 				var oldstorage = videostorage;
 				for (int i = 0; i < 10; i++)
 				{
-					videostorage[i] = new byte[videoHeader.framerate * (videoHeader.stride * videoHeader.width + sizeof(int) * 2)];
+					videostorage[i] = new byte[videoHeader.framerate * (videoHeader.stride * videoHeader.width + sizeof(int) * sizeof(ushort) * 2)];
 					Buffer.BlockCopy(oldstorage[i], 0, videostorage[i], 0, vptr[i]);
 				}
 			}
@@ -301,50 +293,40 @@ namespace LCDText2
 				hasvideoheader = true;
 				for (int i = 0; i < 10; i++)
 				{
-					videostorage[i] = new byte[videoHeader.framerate * (videoHeader.stride * videoHeader.width + sizeof(int) * 2)];
+					videostorage[i] = new byte[videoHeader.framerate * (videoHeader.stride * videoHeader.width + sizeof(int) + sizeof(ushort) * 2)];
 				}
 			}
 		}
-
-		internal int ReadAudio(out byte[] audiobuffer)
+		internal bool GetNextSecond(out byte[] audiobuffer, out int audiolen,  out byte[] videobuffer, out int videolen)
 		{
-			MyLog.Default.WriteLine($"ReadAudio - paused {paused} - closing {closing} - audiosize {audiosize}- videosize {videosize} audioposition - {audioposition}");
+			MyLog.Default.WriteLine($"VideoBuffer GetNextSecond audiosize {audiosize} videosize {videosize}");
 			if (paused || audiosize <= 1 || videosize <= 1)
 			{
-				if(!paused && !closing)
+				if (!paused && !closing)
 					paused = true;
 				audiobuffer = null;
-				return 0;//wait
+				videobuffer = null;
+				audiolen = 0;
+				videolen = 0;
+				return false;//wait
 			}
 			audiobuffer = audiostorage[audioposition];
-			int length = aptr[audioposition];
+			audiolen = aptr[audioposition];
 			aptr[audioposition] = 0;
 			audioposition = audioposition + 1 % 10;
 			audiosize--;
-			if (audiosize <= 1)
-				paused = true;
-			return length;
-		}
-
-		internal int ReadVideo(out byte[] videobuffer)
-		{
-			MyLog.Default.WriteLine($"ReadVideo - paused {paused} - closing {closing} - audiosize {audiosize}- videosize {videosize} videoposition - {videoposition}");
-			if (paused || audiosize <= 1 || videosize <= 1)
-			{
-				if(!paused && !closing)
-					paused = true;
-				videobuffer = null;
-				return 0;//wait
-			}
-
+	
 			videobuffer = videostorage[videoposition];
-			int length = vptr[videoposition];
+			videolen = vptr[videoposition];
 			vptr[videoposition] = 0;
 			videoposition = videoposition + 1 % 10;
 			videosize--;
-			if (videosize <= 1)
+			if (audiosize <= 1 || videosize <= 1)
 				paused = true;
-			return length;
+			return true;
 		}
+
+
+
 	}
 }

@@ -17,7 +17,6 @@ namespace LocalLCD
 		static long videoupdate = Stopwatch.Frequency / 20;
 		byte[] videoframes;
 		int videoptr = 0;
-		int videobytes = 0;
 		byte[] audioframes;
 
 		List<LocalLCDWriterComponent> subscribers = new List<LocalLCDWriterComponent>();
@@ -51,21 +50,34 @@ namespace LocalLCD
 				return;
 			subscribers.Remove(localLCDWriterComponent);
 		}
-
+		int audiobytes = 0;
+		int videobytes = 0;
 		internal void SendUpdate(long elapsedTicks)
 		{
 			if(nextAudioTick <= elapsedTicks)
 			{
-				nextAudioTick += tickspersecond;
-				var bytes = videoBuffer.ReadAudio(out audioframes);
-				if(bytes != 0)
+				int newaudiobytes;
+				int newvideobytes;
+				byte[] newaudioframes;
+				byte[] newvideoframes;
+				if (videoBuffer.GetNextSecond(out newaudioframes, out newaudiobytes, out newvideoframes, out newvideobytes))
 				{
-					MyLog.Default.WriteLineAndConsole($"VideoController Send-Update Audio Second: Subs - {subscribers.Count}");
-					//do process.
-					foreach (var lcd in subscribers)
+					audiobytes = newaudiobytes;
+					videobytes = newvideobytes;
+					audioframes = newaudioframes;
+					videoframes = newvideoframes;
+					videoptr = 0;
+					nextAudioTick += tickspersecond;
+					if (audiobytes != 0)
 					{
-						lcd.PlayAudio(audioframes, bytes, videoBuffer.audioHeader);
+						MyLog.Default.WriteLineAndConsole($"VideoController Send-Update Audio Second: Subs - {subscribers.Count}");
+						//do process.
+						foreach (var lcd in subscribers)
+						{
+							lcd.PlayAudio(audioframes, audiobytes, videoBuffer.audioHeader);
+						}
 					}
+
 				}
 				
 			}
@@ -74,13 +86,11 @@ namespace LocalLCD
 				if (videoBuffer.videoHeader.framerate == 0)
 					return;
 				nextVideoFrame += tickspersecond / videoBuffer.videoHeader.framerate;
+				MyLog.Default.WriteLineAndConsole($"VideoController Send-Update Video Second: Subs - {subscribers.Count}");
 				if (videoframes == null || videoptr >= videobytes)
 				{
-					videobytes = videoBuffer.ReadVideo(out videoframes);
-					if (videobytes == 0)
-						return;
-					MyLog.Default.WriteLineAndConsole($"VideoController Send-Update Video Second: Subs - {subscribers.Count}");
-					videoptr = 0;
+					return;//wait.
+					
 				}
 				int control = BitConverter.ToInt32(videoframes, videoptr);
 				ushort stride = BitConverter.ToUInt16(videoframes, videoptr + sizeof(int));
@@ -107,6 +117,7 @@ namespace LocalLCD
 		char[] charbuffer = new char[1];
 		private string getString(byte[] videoframes, int videoptr, int width, int height)
 		{
+			MyLog.Default.WriteLine($"VideoController getString {videoframes.Length} {videoptr} {width} {height}");
 			int length = (width * height) / 2 + height;
 			if(charbuffer.Length < length)
 				charbuffer = new char[length];

@@ -28,7 +28,7 @@ namespace SE_StreamerPlugin
 		bool haveaudioheader = false;
 		bool havevideoheader = false;
 		Thread RecorderApplicationthread;
-		Thread CommunicationThread;
+		Thread CommunicationThreadVideo, CommunicationThreadAudio;
 		object instance;
 		Thread mainthread;
 		static CaptureStreamForm form;
@@ -48,13 +48,18 @@ namespace SE_StreamerPlugin
 			RecorderApplicationthread = new Thread(StartApplication);
 			RecorderApplicationthread.IsBackground = true;
 			RecorderApplicationthread.Start();
-			CommunicationThread = new Thread(ModCommunication);
-			CommunicationThread.IsBackground = true;
-			CommunicationThread.Start();
+			CommunicationThreadVideo = new Thread(ModCommunicationVideo);
+			CommunicationThreadVideo.IsBackground = true;
+			CommunicationThreadVideo.Start();
+			CommunicationThreadAudio = new Thread(ModCommunicationAudio);
+			CommunicationThreadAudio.IsBackground = true;
+			CommunicationThreadAudio.Start();
 			process = Process.GetCurrentProcess();
 			mainthread = Thread.CurrentThread;
 			//MyLog.Default.WriteLine(gameInstance.ToString());
 		}
+
+
 
 		public static void StartApplication()
 		{
@@ -96,19 +101,18 @@ namespace SE_StreamerPlugin
 
 
 		}
-		
-		public void ModCommunication()
+		private void ModCommunicationAudio()
 		{
-			while(mainthread.ThreadState != System.Threading.ThreadState.Stopped)
+			while (mainthread.ThreadState != System.Threading.ThreadState.Stopped)
 			{
 				try
 				{
 
-					if (Audio == null || Video == null)
+					if (Audio == null)
 					{
 						Audio = new AnonymousPipeClientStream(PipeDirection.In, CaptureStreamForm.AudioStream.GetClientHandleAsString());
 
-						Video = new AnonymousPipeClientStream(PipeDirection.In, CaptureStreamForm.VideoStream.GetClientHandleAsString());
+					
 						continue;
 					}
 					if (Audio.CanRead)
@@ -137,8 +141,8 @@ namespace SE_StreamerPlugin
 								MyLog.Default.WriteLine("Plugin: ModCommunication - Sending Audio EOS ");
 								SendAudio?.Invoke(transferabuffer, sizeof(int));
 								haveaudioheader = false;//reset
-								//havevideoheader = false;
-								
+														//havevideoheader = false;
+
 								continue;
 							}
 							if (bytes + sizeof(int) > transferabuffer.Length)
@@ -147,12 +151,37 @@ namespace SE_StreamerPlugin
 								transferabuffer = new byte[bytes + sizeof(int)];//grow automatically. 
 								Buffer.BlockCopy(oldbuf, 0, transferabuffer, 0, 4);//move size header to new array. 
 							}
-							
+
 							Audio.Read(transferabuffer, sizeof(int), bytes);
 							MyLog.Default.WriteLine("Plugin: ModCommunication - Sending Audio - " + (bytes + sizeof(int)).ToString());
 							SendAudio?.Invoke(transferabuffer, bytes + sizeof(int));
 						}
 
+					}
+				
+				}
+				catch (Exception ex)
+				{
+					MyLog.Default.WriteLineAndConsole(ex.ToString());
+				}
+				if (process.HasExited)
+					break;
+				Thread.Sleep(0);
+			}
+		}
+		public void ModCommunicationVideo()
+		{
+			while(mainthread.ThreadState != System.Threading.ThreadState.Stopped)
+			{
+				try
+				{
+
+					if ( Video == null)
+					{
+						
+
+						Video = new AnonymousPipeClientStream(PipeDirection.In, CaptureStreamForm.VideoStream.GetClientHandleAsString());
+						continue;
 					}
 					if (Video.CanRead)
 					{
