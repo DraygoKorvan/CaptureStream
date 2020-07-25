@@ -91,7 +91,7 @@ namespace LocalLCD
 		char[] charbuffer = new char[1];
 		private string getString(byte[] videoframes, int videoptr, int width, int height)
 		{
-			int length = (width * height) + height;
+			int length = (width * height) / 2 + height;
 			if(charbuffer.Length < length)
 				charbuffer = new char[length];
 
