@@ -121,6 +121,7 @@ namespace LCDText2
 		bool firstvideopacket = true;
 		private void RecieveVideoStream(byte[] video, int length)
 		{
+			MyAPIGateway.Utilities.ShowMessage("GotPacket", length.ToString());
 			//---------------------------
 			//------- PREFORMAT GOES HERE
 			//---------------------------
