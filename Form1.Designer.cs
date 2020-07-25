@@ -235,7 +235,6 @@
 			this.Name = "CaptureStreamForm";
 			this.Text = "Capture Stream";
 			this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.onClosing);
-			this.Load += new System.EventHandler(this.CaptureStreamForm_Load);
 			((System.ComponentModel.ISupportInitialize)(this.Preview)).EndInit();
 			this.ResumeLayout(false);
 			this.PerformLayout();
