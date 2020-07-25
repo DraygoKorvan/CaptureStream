@@ -25,6 +25,7 @@ namespace LocalLCD
 		public HudAPIv2 HudAPI;
 		public static LCDWriterCore instance;
 		public bool isDedicated = false;
+		public bool offline = false;
 		public bool isServer = false;
 		public const ushort COMID = 8723;
 		public const string NETWORKNAME = "LCDPlayer";
@@ -48,7 +49,8 @@ namespace LocalLCD
 			{
 				HudAPI = new HudAPIv2(RegisterHudAPI);
 				init = true;
-				isServer = MyAPIGateway.Multiplayer.IsServer;
+				offline = MyAPIGateway.Session.OnlineMode == VRage.Game.MyOnlineModeEnum.OFFLINE;
+				isServer = offline || MyAPIGateway.Multiplayer.IsServer;
 				isDedicated = isServer && MyAPIGateway.Utilities.IsDedicated;
 				time.Start();
 			}

@@ -1,4 +1,5 @@
 ﻿using LCDText2;
+using Sandbox.ModAPI;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -54,7 +55,7 @@ namespace LocalLCD
 			{
 				nextAudioTick += tickspersecond;
 				var bytes = videoBuffer.ReadAudio(out audioframes);
-				if(bytes != 0)
+				if(bytes != 0 && !(LCDWriterCore.instance.offline || videoBuffer.steamid == MyAPIGateway.Multiplayer.MyId))
 				{
 					//do process.
 					foreach(var lcd in subscribers)
