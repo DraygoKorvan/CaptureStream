@@ -31,6 +31,7 @@ namespace SE_StreamerPlugin
 		Thread CommunicationThread;
 		object instance;
 		Thread mainthread;
+		static CaptureStreamForm form;
 		public void Dispose()
 		{
 			
@@ -58,7 +59,8 @@ namespace SE_StreamerPlugin
 
 			Application.EnableVisualStyles();
 			//Application.SetCompatibleTextRenderingDefault(false);
-			Application.Run(new CaptureStreamForm());
+			form = new CaptureStreamForm();
+			Application.Run(form);
 		}
 		bool registerevents = false;
 		byte[] transferabuffer = new byte[4722];
@@ -191,8 +193,13 @@ namespace SE_StreamerPlugin
 					break;
 				Thread.Sleep(0);
 			}
+			if(form != null)
+			{
+				if(form.running)
+					form.Close();
+			}
 
-			RecorderApplicationthread.Abort();
+			
 
 
 		}

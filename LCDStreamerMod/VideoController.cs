@@ -14,7 +14,7 @@ namespace LocalLCD
 		private VideoBuffer videoBuffer;
 		static long tickspersecond = Stopwatch.Frequency;
 		static long videoupdate = Stopwatch.Frequency / 20;
-		byte[] videoframes = new byte[0];
+		byte[] videoframes;
 		int videoptr = 0;
 		byte[] audioframes;
 
@@ -66,10 +66,14 @@ namespace LocalLCD
 			}
 			if (nextVideoFrame <= elapsedTicks)
 			{
+				if (videoBuffer.videoHeader.framerate == 0)
+					return;
 				nextVideoFrame += tickspersecond / videoBuffer.videoHeader.framerate;
-				if (videoptr >= videoframes.Length)
+				if (videoframes == null || videoptr >= videoframes.Length)
 				{
 					var bytes = videoBuffer.ReadVideo(out videoframes);
+					if (bytes == 0)
+						return;
 					videoptr = 0;
 				}
 				int control = BitConverter.ToInt32(videoframes, videoptr);

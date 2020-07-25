@@ -1,5 +1,6 @@
 ﻿using LocalLCD;
 using System;
+using VRage.Utils;
 
 namespace LCDText2
 {
@@ -7,10 +8,7 @@ namespace LCDText2
 	{
 		public ulong steamid;
 		public long nextFrame = 0;
-		public VideoBuffer()
-		{
-			LCDWriterCore.instance.AddBuffer(this);
-		}
+
 		public struct AudioHeader
 		{
 			public int SampleRate;
@@ -65,10 +63,15 @@ namespace LCDText2
 			public static VideoHeader GetFromBytes(byte[] bytes, int offset)
 			{
 				var header = new VideoHeader();
+				MyLog.Default.WriteLine("VideoHeader:");
 				header.width = BitConverter.ToInt32(bytes, 0 + offset);
+				MyLog.Default.WriteLine("width " + header.width.ToString());
 				header.height = BitConverter.ToInt32(bytes, sizeof(int) + offset);
+				MyLog.Default.WriteLine("height " + header.height.ToString());
 				header.stride = BitConverter.ToInt32(bytes, sizeof(int) * 2 + offset);
+				MyLog.Default.WriteLine("stride " + header.stride.ToString());
 				header.framerate = BitConverter.ToInt32(bytes, sizeof(int) * 3 + offset);
+				MyLog.Default.WriteLine("framerate " + header.framerate.ToString());
 				return header;
 			}
 
@@ -113,7 +116,11 @@ namespace LCDText2
 
 		public VideoBuffer(ulong steamid)
 		{
+			if (steamid == 0)
+				steamid = 2;
 			this.steamid = steamid;
+			MyLog.Default.WriteLine("VideoBuffer " + steamid.ToString());
+			LCDWriterCore.instance.AddBuffer(this);
 		}
 
 		internal void AddToAudioBuffer(byte[] obj, int offset, int length)

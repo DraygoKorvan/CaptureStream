@@ -183,7 +183,8 @@ namespace LocalLCD
 
 		public void Close()
 		{
-			fake.Close();
+			fake = null;
+			surface = null;
 		}
 	}
 }

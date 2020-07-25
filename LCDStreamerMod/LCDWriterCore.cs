@@ -86,6 +86,7 @@ namespace LocalLCD
 
 		internal void AddBuffer(VideoBuffer videoBuffer)
 		{
+			MyLog.Default.WriteLine("AddBuffer");
 			VideoController Component;
 			if (controllers.TryGetValue(videoBuffer.steamid, out Component))
 			{
@@ -96,6 +97,7 @@ namespace LocalLCD
 			{
 				Component = new VideoController(videoBuffer);
 				controllers.Add(videoBuffer.steamid, Component);
+				MyLog.Default.WriteLine("AddLineItem Called from AddBuffer");
 				LocalLCDWriterComponent.AddLineItem(MyStringId.GetOrCompute(videoBuffer.steamid.ToString()), videoBuffer.steamid);
 			}
 			if (time.IsRunning)

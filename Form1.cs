@@ -484,7 +484,7 @@ namespace CaptureStream
 		{
 
 		}
-		bool running = true;
+		public bool running = true;
 
 		private void Playback_Click(object sender, EventArgs e)
 		{
@@ -494,7 +494,7 @@ namespace CaptureStream
 
 
 
-		private void onClosing(object sender, FormClosingEventArgs e)
+		public void onClosing(object sender, FormClosingEventArgs e)
 		{
 			running = false;
 			recording = false;
