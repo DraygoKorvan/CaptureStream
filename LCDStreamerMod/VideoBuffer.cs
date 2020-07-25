@@ -225,7 +225,7 @@ namespace LCDText2
 			int control = BitConverter.ToInt32(obj, offset);
 			ushort stride = BitConverter.ToUInt16(obj, offset + sizeof(int));
 			ushort height = BitConverter.ToUInt16(obj, offset + sizeof(int) + sizeof(ushort));
-
+			MyLog.Default.WriteLine($"Packet Header: c {control} s {stride} h {height}");
 			if (control == 1)
 			{
 				closing = true;
@@ -243,11 +243,14 @@ namespace LCDText2
 
 			int rowsize = (videoHeader.stride * videoHeader.height + sizeof(int) * 2) * videoHeader.framerate;
 			int writebytes = stride * height + sizeof(int) * 2;
+			MyLog.Default.WriteLine($"Writing to Video buffer? {writebytes} {length}");
 			if (writebytes <= length)
 			{
 				int writepos = videoposition + videosize % 10;
-				if (aptr[writepos] + writebytes < rowsize)
+				
+				if (vptr[writepos] + writebytes < rowsize)
 				{
+					MyLog.Default.WriteLine($"Single Write {vptr[writepos]} {writebytes}");
 					Buffer.BlockCopy(obj, offset, videostorage[writepos], vptr[writepos], writebytes);
 					vptr[writepos] += writebytes;
 				}
@@ -255,7 +258,7 @@ namespace LCDText2
 				{
 					int remainder = rowsize - vptr[writepos];
 					writebytes -= remainder;
-
+					MyLog.Default.WriteLine($"Double write {vptr[writepos]} {remainder}");
 					Buffer.BlockCopy(obj, offset, videostorage[writepos], vptr[writepos], remainder);
 					vptr[writepos] = rowsize;
 					videosize = videosize + 1;
@@ -270,10 +273,11 @@ namespace LCDText2
 					vptr[writepos] = 0;
 					if (paused && audiosize >= 5 && videosize >= 5)
 						paused = false;
+					MyLog.Default.WriteLine($"Second Write? {vptr[writepos]} {writebytes}");
 					if (writebytes != 0)
 					{
+						
 						Buffer.BlockCopy(obj, offset, videostorage[writepos], vptr[writepos], writebytes);
-						vptr[writepos] += writebytes; Buffer.BlockCopy(obj, offset, videostorage[writepos], vptr[writepos], writebytes);
 						vptr[writepos] += writebytes;
 					}
 

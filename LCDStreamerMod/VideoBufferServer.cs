@@ -133,6 +133,12 @@ namespace LCDText2
 			MyAPIGateway.Multiplayer.SendMessageToServer(videostreamcommand, message);
 		}
 		bool firstvideopacket = true;
+		public struct VideoMessage
+		{
+			public int offset;
+			public int length;
+		}
+
 		private void RecieveVideoStream(byte[] video, int length)
 		{
 			MyLog.Default.WriteLineAndConsole("RecieveVideoStream " + length.ToString()) ;
@@ -184,7 +190,7 @@ namespace LCDText2
 			int control = BitConverter.ToInt32(encodedFrame, 0 );
 			ushort stride = BitConverter.ToUInt16(encodedFrame,   sizeof(int));
 			ushort height = BitConverter.ToUInt16(encodedFrame, sizeof(int) + sizeof(ushort));
-			//MyLog.Default.WriteLine($"Video Packet Header: c {control} s {stride} h {height}");
+			MyLog.Default.WriteLine($"Video Packet Header: c {control} s {stride} h {height}");
 			var offset = sizeof(int) + sizeof(ushort) * 2;
 			ushort newstride = (ushort)((stride / 3) *2);
 			newstride += (ushort)(newstride % 2);
@@ -217,9 +223,13 @@ namespace LCDText2
 					BitConverter.GetBytes(ColorToChar(r, g, b)).CopyTo(encodingbuffer, encadjust + eii);
 				}
 			});
-			Buffer.BlockCopy(BitConverter.GetBytes(newstride), 0, encodedFrame, sizeof(int) + sizeof(ushort), sizeof(ushort));
+			Buffer.BlockCopy(BitConverter.GetBytes(newstride), 0, encodedFrame, sizeof(int), sizeof(ushort));
 			Buffer.BlockCopy(encodingbuffer, 0, encodedFrame, offset, encodedlength - offset);
-			return encodedlength + offset;
+			control = BitConverter.ToInt32(encodedFrame, 0);
+			stride = BitConverter.ToUInt16(encodedFrame, sizeof(int));
+			height = BitConverter.ToUInt16(encodedFrame, sizeof(int) + sizeof(ushort));
+			MyLog.Default.WriteLine($"New Video Packet Header: c {control} s {stride} h {height}");
+			return encodedlength;
 		}
 		ushort ColorToChar(byte r, byte g, byte b)
 		{
