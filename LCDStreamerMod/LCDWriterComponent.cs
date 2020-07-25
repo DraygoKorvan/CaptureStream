@@ -80,6 +80,7 @@ namespace LocalLCD
 
 		internal void PlayAudio(byte[] audioframes, int bytes, VideoBuffer.AudioHeader audioHeader)
 		{
+
 			if(Script != null)
 				Script.PlayAudio(audioframes, bytes, audioHeader);
 		}
@@ -113,6 +114,10 @@ namespace LocalLCD
 			}
 			if (Selected == 0)
 			{
+				if(Script != null)
+				{
+					Script.DeletePlayer();
+				}
 				CurrentBuffer.Value = 1;
 				return;
 			}

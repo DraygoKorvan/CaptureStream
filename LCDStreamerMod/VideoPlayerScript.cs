@@ -36,7 +36,8 @@ namespace LocalLCD
 		private List<IMySlimBlock> blocks = new List<IMySlimBlock>();
 		internal void PlayAudio(byte[] audioframes, int size, AudioHeader header)
 		{
-			if(AudioEmitter != null)
+			//MyLog.Default.WriteLine($"VideoPlayerScript PlayAudio {AudioEmitter != null}");
+			if (AudioEmitter != null)
 				AudioEmitter.PlaySound(audioframes, size, header.SampleRate, 1, 200);
 		}
 
@@ -64,7 +65,7 @@ namespace LocalLCD
 			{
 				var matrix = new MatrixD(Parent.WorldMatrix);
 				matrix.Translation += Parent.WorldMatrix.Left * (Parent.CubeGrid.GridSize * 0.5);
-				matrix.Translation += Parent.WorldMatrix.Forward * -0.005d;
+				matrix.Translation += Parent.WorldMatrix.Forward * -0.01;
 				fake.SetWorldMatrix(matrix);
 			}
 
@@ -130,7 +131,7 @@ namespace LocalLCD
 							surface = issurface;
 							surface.ContentType = ContentType.TEXT_AND_IMAGE;
 							surface.Alignment = TextAlignment.CENTER;
-							surface.FontSize = 1f;
+							surface.FontSize = 0.072f;
 							surface.Font = "Mono Color";
 							//MyAPIGateway.Utilities.ShowMessage("found screen", surface.ToString());
 						}
@@ -149,11 +150,21 @@ namespace LocalLCD
 			}
 	}
 
-		public void Main()
+		internal void DeletePlayer()
 		{
+			if(fake != null)
+			{
+				surface = null;
+				fake.Close();
+				fake = null;
+			}
+			if (AudioEmitter != null && AudioEmitter.IsPlaying)
+			{
+				AudioEmitter.StopSound(true);
+			}
+
 
 		}
-
 
 		private void AudioEmitter_StoppedPlaying(MyEntity3DSoundEmitter obj)
 		{
@@ -174,13 +185,13 @@ namespace LocalLCD
 
 			if (fake == null)
 			{
-				MyLog.Default.WriteLineAndConsole($"VideoPlayerScript InitFake");
+				//MyLog.Default.WriteLineAndConsole($"VideoPlayerScript InitFake");
 				InitFake();
 			}
 				
 			if(surface != null)
 			{
-				MyLog.Default.WriteLineAndConsole($"VideoPlayerScript WriteText");
+				//MyLog.Default.WriteLineAndConsole($"VideoPlayerScript WriteText");
 				surface.WriteText(chars);
 			}
 		}

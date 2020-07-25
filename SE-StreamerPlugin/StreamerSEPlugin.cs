@@ -138,7 +138,7 @@ namespace SE_StreamerPlugin
 							int bytes = BitConverter.ToInt32(transferabuffer, 0);
 							if (bytes == 0)
 							{
-								MyLog.Default.WriteLine("Plugin: ModCommunication - Sending Audio EOS ");
+								//MyLog.Default.WriteLine("Plugin: ModCommunication - Sending Audio EOS ");
 								SendAudio?.Invoke(transferabuffer, sizeof(int));
 								haveaudioheader = false;//reset
 														//havevideoheader = false;
@@ -153,7 +153,7 @@ namespace SE_StreamerPlugin
 							}
 
 							Audio.Read(transferabuffer, sizeof(int), bytes);
-							MyLog.Default.WriteLine("Plugin: ModCommunication - Sending Audio - " + (bytes + sizeof(int)).ToString());
+							//MyLog.Default.WriteLine("Plugin: ModCommunication - Sending Audio - " + (bytes + sizeof(int)).ToString());
 							SendAudio?.Invoke(transferabuffer, bytes + sizeof(int));
 						}
 
@@ -190,7 +190,7 @@ namespace SE_StreamerPlugin
 							var read = Video.Read(transfervbuffer, 0, videoheader.Length());
 							havevideoheader = true;
 							streamvideoheader = videoheader.getFromBytes(transfervbuffer);
-							MyLog.Default.WriteLine("Plugin: ModCommunication - Sending Video header " + (videoheader.Length()).ToString());
+							//MyLog.Default.WriteLine("Plugin: ModCommunication - Sending Video header " + (videoheader.Length()).ToString());
 							SendVideo?.Invoke(transfervbuffer, videoheader.Length());
 							
 						}
@@ -208,10 +208,10 @@ namespace SE_StreamerPlugin
 							ushort stride = BitConverter.ToUInt16(transfervbuffer, sizeof(int));
 							ushort height = BitConverter.ToUInt16(transfervbuffer, sizeof(ushort) + sizeof(int));
 
-							MyLog.Default.WriteLine($"Video Packet Header: c {control} s {stride} h {height}");
+							//MyLog.Default.WriteLine($"Video Packet Header: c {control} s {stride} h {height}");
 							if (control == 1)
 							{
-								MyLog.Default.WriteLine("Plugin: ModCommunication - Sending Video header EOS " + (sizeof(int) + sizeof(ushort) * 2).ToString());
+								//MyLog.Default.WriteLine("Plugin: ModCommunication - Sending Video header EOS " + (sizeof(int) + sizeof(ushort) * 2).ToString());
 								SendVideo?.Invoke(transfervbuffer, sizeof(int) + sizeof(ushort) * 2);
 								havevideoheader = false;
 								haveaudioheader = false;
@@ -233,7 +233,7 @@ namespace SE_StreamerPlugin
 									break;
 							}
 							while (rest < bytes);
-							MyLog.Default.WriteLine("Plugin: ModCommunication - Sending Video - " + (rest + sizeof(int) + sizeof(ushort) * 2).ToString());
+							//MyLog.Default.WriteLine("Plugin: ModCommunication - Sending Video - " + (rest + sizeof(int) + sizeof(ushort) * 2).ToString());
 							SendVideo?.Invoke(transfervbuffer, bytes + sizeof(int) + sizeof(ushort) * 2);
 						}
 					}

@@ -40,7 +40,7 @@ namespace CaptureStream
 
 		Pen drawingpen = new Pen(Color.Red);
 		Rectangle Rectangle = new Rectangle(0, 0, 1920, 1080);
-		int recordheight = 238;
+		int recordheight = 236;
 		int recordwidth = 420;
 		Graphics gs;
 		Bitmap bmpbuffer, bmpreader, bmppreview;
@@ -317,7 +317,10 @@ namespace CaptureStream
 							framerateadd = 1;//prevent capture desync. 
 						}
 						framerateadd = 0;
-							
+						if(RefreshBitmaps)
+						{
+							RefreshRecordingBitmaps();
+						}
 						//Rectangle bounds = new Rectangle(Rectangle.Right, Rectangle.Top, Rectangle.Width, Rectangle.Height);
 						using (Graphics g = Graphics.FromImage(bmpreader))
 						{
@@ -392,25 +395,50 @@ namespace CaptureStream
 
 		private void UpdateBmp()
 		{
-			if(!recording)
+			RefreshBitmaps = true;
+			RefreshPreview = true;
+			if (!recording)
 			{
-				if(bmpbuffer != null)
-					bmpbuffer.Dispose();
-				bmpreader = new Bitmap(Rectangle.Width, Rectangle.Height, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
-				bmpbuffer = new Bitmap(recordwidth, recordheight, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
-				bmppreview = new Bitmap(Rectangle.Width, Rectangle.Height, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
-				Preview.Image = bmppreview;
 
-				BitmapData bmpData = bmpbuffer.LockBits(new Rectangle(0, 0, bmpbuffer.Width, bmpbuffer.Height), System.Drawing.Imaging.ImageLockMode.ReadOnly, bmpbuffer.PixelFormat);
-				header = new videoheader();
-				header.width = bmpData.Width;
-				header.height = bmpData.Height;
-				header.stride = bmpData.Stride;
-				header.framerate = playbackframerate;
-				bmpbuffer.UnlockBits(bmpData);
-				frameout = new byte[header.stride * header.height];
+				RefreshRecordingBitmaps();
+				RefreshPreviewBitmap();
+
+
+
+
+
 			}
 				
+		}
+		private void RefreshPreviewBitmap()
+		{
+			RefreshPreview = false;
+
+			
+			if (bmppreview != null)
+				bmppreview.Dispose();
+			bmppreview = new Bitmap(Rectangle.Width, Rectangle.Height, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+			Preview.Image = bmppreview;
+
+		}
+		private void RefreshRecordingBitmaps()
+		{
+			if (bmpbuffer != null)
+				bmpbuffer.Dispose();
+			if (bmpreader != null)
+				bmpreader.Dispose();
+			RefreshBitmaps = false;
+			bmpreader = new Bitmap(Rectangle.Width, Rectangle.Height, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+			bmpbuffer = new Bitmap(recordwidth, recordheight, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+			BitmapData bmpData = bmpbuffer.LockBits(new Rectangle(0, 0, bmpbuffer.Width, bmpbuffer.Height), System.Drawing.Imaging.ImageLockMode.ReadOnly, bmpbuffer.PixelFormat);
+			header = new videoheader();
+			header.width = bmpData.Width;
+			header.height = bmpData.Height;
+			header.stride = bmpData.Stride;
+			header.framerate = playbackframerate;
+			bmpbuffer.UnlockBits(bmpData);
+
+			frameout = new byte[header.stride * header.height];
 		}
 
 		private void RecordOnClick(object sender, MouseEventArgs e)
@@ -432,12 +460,13 @@ namespace CaptureStream
 			}
 		}
 
+		bool RefreshBitmaps = false;
+		bool RefreshPreview = false;
 
 
 		private void UpdatePosY(object sender, EventArgs e)
 		{
-			if (recording)
-				return;
+
 			if (int.TryParse(((TextBox)sender).Text, out int newval))
 			{
 				if (newval >= 0)
@@ -446,8 +475,7 @@ namespace CaptureStream
 		}
 		private void UpdateSizeX(object sender, EventArgs e)
 		{
-			if (recording)
-				return;
+
 			if (int.TryParse(((TextBox)sender).Text, out int newval))
 			{
 				if (newval > 0)
@@ -457,8 +485,7 @@ namespace CaptureStream
 		}
 		private void UpdateSizeY(object sender, EventArgs e)
 		{
-			if (recording)
-				return;
+
 			if (int.TryParse(((TextBox)sender).Text, out int newval))
 			{
 				if (newval > 0)
@@ -468,8 +495,7 @@ namespace CaptureStream
 		}
 		private void UpdateResX(object sender, EventArgs e)
 		{
-			if (recording)
-				return;
+
 			if (int.TryParse(((TextBox)sender).Text, out int newval))
 			{
 				if (newval > 0)
@@ -501,8 +527,7 @@ namespace CaptureStream
 
 		private void UpdateResY(object sender, EventArgs e)
 		{
-			if (recording)
-				return;
+
 			if (int.TryParse(((TextBox)sender).Text, out int newval))
 			{
 				if (newval > 0)
@@ -514,7 +539,10 @@ namespace CaptureStream
 		{
 			while (running)
 			{
-
+				if(RefreshPreview)
+				{
+					RefreshPreviewBitmap();
+				}
 				try
 				{
 					Preview.Invoke(new RefreshCallback(this.UpdateImagePreview));

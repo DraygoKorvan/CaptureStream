@@ -63,7 +63,7 @@ namespace LCDText2
 		}
 		private void recievedMessageInternal(byte[] obj, int offset, int length, ushort type, ulong steamid)
 		{
-			MyLog.Default.WriteLineAndConsole("recievedMessageInternal " + length.ToString());
+			//MyLog.Default.WriteLineAndConsole("recievedMessageInternal " + length.ToString());
 			if (online && isServer)
 			{
 				foreach(IMyPlayer id in idents)
@@ -78,7 +78,7 @@ namespace LCDText2
 			VideoBuffer buffer;
 			if(!videoBuffer.TryGetValue(steamid, out buffer))
 			{
-				MyAPIGateway.Utilities.ShowMessage("Creating Buffer ", steamid.ToString());
+				MyAPIGateway.Utilities.ShowMessage("Creating Channel ", steamid.ToString());
 				videoBuffer.Add(steamid, buffer = new VideoBuffer(steamid));
 			}
 			switch(type)
@@ -86,11 +86,11 @@ namespace LCDText2
 				case 0: //use this for control in the future, add remove listeners?
 					return;
 				case 1:
-					MyLog.Default.WriteLineAndConsole("AddToAudioBuffer " + length.ToString());
+					//MyLog.Default.WriteLineAndConsole("AddToAudioBuffer " + length.ToString());
 					buffer.AddToAudioBuffer(obj, offset, length);
 					return;
 				case 2:
-					MyLog.Default.WriteLineAndConsole("AddToVideoBuffer " + length.ToString());
+					//MyLog.Default.WriteLineAndConsole("AddToVideoBuffer " + length.ToString());
 					buffer.AddToVideoBuffer(obj, offset, length);
 					return;
 				default:
@@ -115,22 +115,24 @@ namespace LCDText2
 		private void RecieveAudioStream(byte[] audio, int length)
 		{
 			//MyAPIGateway.Utilities.ShowMessage("GotPacket", length.ToString());
-			MyLog.Default.WriteLineAndConsole("RecieveAudioStream " + length.ToString());
+			//MyLog.Default.WriteLineAndConsole("RecieveAudioStream " + length.ToString());
 
 			//MyAPIGateway.Utilities.ShowMessage("GotPacket", length.ToString());
-			if (isServer)
-			{
-				recievedMessageInternal(audio, 0, length, 1, 0);
-				return;
-			}
+
+			recievedMessageInternal(audio, 0, length, 1, 0);
+
 			if (!online)
 				return;
-			var header = new packetheader() { type = 1, steamid = MyAPIGateway.Multiplayer.MyId };
-			var pheader = MyAPIGateway.Utilities.SerializeToBinary(header);
-			var message = new byte[length + pheader.Length];//REEEE
-			Buffer.BlockCopy(pheader, 0, message, 0, pheader.Length);
-			Buffer.BlockCopy(audio, 0, message, pheader.Length, length);
-			MyAPIGateway.Multiplayer.SendMessageToServer(videostreamcommand, message);
+			if(!isServer)
+			{
+				var header = new packetheader() { type = 1, steamid = MyAPIGateway.Multiplayer.MyId };
+				var pheader = MyAPIGateway.Utilities.SerializeToBinary(header);
+				var message = new byte[length + pheader.Length];//REEEE
+				Buffer.BlockCopy(pheader, 0, message, 0, pheader.Length);
+				Buffer.BlockCopy(audio, 0, message, pheader.Length, length);
+				MyAPIGateway.Multiplayer.SendMessageToServer(videostreamcommand, message);
+			}
+
 		}
 		bool firstvideopacket = true;
 		public struct VideoMessage
@@ -141,7 +143,7 @@ namespace LCDText2
 
 		private void RecieveVideoStream(byte[] video, int length)
 		{
-			MyLog.Default.WriteLineAndConsole("RecieveVideoStream " + length.ToString()) ;
+			//MyLog.Default.WriteLineAndConsole("RecieveVideoStream " + length.ToString()) ;
 			//MyAPIGateway.Utilities.ShowMessage("GotPacket", length.ToString());
 			//---------------------------
 			//------- PREFORMAT GOES HERE
@@ -190,7 +192,7 @@ namespace LCDText2
 			int control = BitConverter.ToInt32(encodedFrame, 0 );
 			ushort stride = BitConverter.ToUInt16(encodedFrame,   sizeof(int));
 			ushort height = BitConverter.ToUInt16(encodedFrame, sizeof(int) + sizeof(ushort));
-			MyLog.Default.WriteLine($"Video Packet Header: c {control} s {stride} h {height}");
+			//MyLog.Default.WriteLine($"Video Packet Header: c {control} s {stride} h {height}");
 			var offset = sizeof(int) + sizeof(ushort) * 2;
 			ushort newstride = (ushort)((stride / 3) *2);
 			newstride += (ushort)(newstride % 2);
@@ -228,7 +230,7 @@ namespace LCDText2
 			control = BitConverter.ToInt32(encodedFrame, 0);
 			stride = BitConverter.ToUInt16(encodedFrame, sizeof(int));
 			height = BitConverter.ToUInt16(encodedFrame, sizeof(int) + sizeof(ushort));
-			MyLog.Default.WriteLine($"New Video Packet Header: c {control} s {stride} h {height}");
+			//MyLog.Default.WriteLine($"New Video Packet Header: c {control} s {stride} h {height}");
 			return encodedlength;
 		}
 		ushort ColorToChar(byte r, byte g, byte b)
