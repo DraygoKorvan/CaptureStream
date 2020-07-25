@@ -36,9 +36,9 @@ namespace LCDText2
 			if (MyAPIGateway.Session.OnlineMode == VRage.Game.MyOnlineModeEnum.OFFLINE)
 				return;
 
-			online = true;
+			online = !(MyAPIGateway.Session.OnlineMode == VRage.Game.MyOnlineModeEnum.OFFLINE);
 
-			isServer = MyAPIGateway.Multiplayer.IsServer;
+			isServer = MyAPIGateway.Multiplayer.IsServer || !online;
 
 			var def = new packetheader() { steamid = 0, type = 0 };
 			headerpacketlength = MyAPIGateway.Utilities.SerializeToBinary(def).Length;
@@ -58,7 +58,8 @@ namespace LCDText2
 		}
 		private void recievedMessageInternal(byte[] obj, int offset, int length, ushort type, ulong steamid)
 		{
-			if(isServer)
+			MyLog.Default.WriteLineAndConsole("recievedMessageInternal " + length.ToString());
+			if (online && isServer)
 			{
 				foreach(IMyPlayer id in idents)
 				{
@@ -72,6 +73,7 @@ namespace LCDText2
 			VideoBuffer buffer;
 			if(!videoBuffer.TryGetValue(steamid, out buffer))
 			{
+				MyAPIGateway.Utilities.ShowMessage("Creating Buffer ", steamid.ToString());
 				videoBuffer.Add(steamid, buffer = new VideoBuffer(steamid));
 			}
 			switch(type)
@@ -79,9 +81,11 @@ namespace LCDText2
 				case 0: //use this for control in the future, add remove listeners?
 					return;
 				case 1:
+					MyLog.Default.WriteLineAndConsole("AddToAudioBuffer " + length.ToString());
 					buffer.AddToAudioBuffer(obj, offset, length);
 					return;
 				case 2:
+					MyLog.Default.WriteLineAndConsole("AddToVideoBuffer " + length.ToString());
 					buffer.AddToVideoBuffer(obj, offset, length);
 					return;
 				default:
@@ -105,7 +109,9 @@ namespace LCDText2
 
 		private void RecieveAudioStream(byte[] audio, int length)
 		{
-			if(isServer)
+			MyLog.Default.WriteLineAndConsole("RecieveAudioStream " + length.ToString());
+			//MyAPIGateway.Utilities.ShowMessage("GotPacket", length.ToString());
+			if (isServer)
 			{
 				recievedMessageInternal(audio, 0, length, 1, 0);
 				return;
@@ -122,7 +128,8 @@ namespace LCDText2
 		bool firstvideopacket = true;
 		private void RecieveVideoStream(byte[] video, int length)
 		{
-			MyAPIGateway.Utilities.ShowMessage("GotPacket", length.ToString());
+			MyLog.Default.WriteLineAndConsole("RecieveVideoStream " + length.ToString()) ;
+			//MyAPIGateway.Utilities.ShowMessage("GotPacket", length.ToString());
 			//---------------------------
 			//------- PREFORMAT GOES HERE
 			//---------------------------
@@ -132,8 +139,13 @@ namespace LCDText2
 				offset += VideoBuffer.VideoHeader.Length();
 				firstvideopacket = false;
 			}
-			var newlength = EncodeImageToChar(video, offset);
-			length = newlength;
+			else
+			{
+				var newlength = EncodeImageToChar(video, offset);
+				length = newlength;
+			}
+
+			
 			//int newLength = output.Length; set the new length of the frame?
 
 			//---------------------------
@@ -160,11 +172,12 @@ namespace LCDText2
 		/// </summary>
 		int EncodeImageToChar(byte[] encodedFrame, int offset)
 		{
-
+			if (offset + sizeof(int) + sizeof(ushort) >= encodedFrame.Length)
+				return encodedFrame.Length;
 			int control = BitConverter.ToInt32(encodedFrame, offset);
 			ushort stride = BitConverter.ToUInt16(encodedFrame, offset + sizeof(int));
-			ushort height = BitConverter.ToUInt16(encodedFrame, offset + sizeof(uint));
-			offset += sizeof(int) + sizeof(uint) * 2;
+			ushort height = BitConverter.ToUInt16(encodedFrame, offset + sizeof(ushort));
+			offset += sizeof(int) + sizeof(ushort) * 2;
 			ushort newstride = (ushort)((stride / 3) *2);
 			newstride += (ushort)(newstride % 2);
 			int encodedlength = newstride * height + offset;
@@ -175,7 +188,7 @@ namespace LCDText2
 		
 			MyAPIGateway.Parallel.For(0, height, i => {
 				int adjust = offset + i * stride;
-				int encadjust = offset + i * newstride;
+				int encadjust = i * newstride;
 				for(int ii = 0; ii + 2 < stride; ii+= 3)
 				{
 					byte r = encodedFrame[adjust + (ii * 3) + 2];
@@ -185,7 +198,7 @@ namespace LCDText2
 				}
 			});
 			Buffer.BlockCopy(BitConverter.GetBytes(newstride), 0, encodedFrame, offset + sizeof(int), sizeof(ushort));
-			Buffer.BlockCopy(encodingbuffer, offset, encodedFrame, offset, encodedlength);
+			Buffer.BlockCopy(encodingbuffer, 0, encodedFrame, offset, encodedlength);
 			return encodedlength;
 		}
 		ushort ColorToChar(byte r, byte g, byte b)
@@ -259,6 +272,7 @@ namespace LCDText2
 
 		private void RecieveControl(int obj)
 		{
+			MyLog.Default.WriteLineAndConsole("Registration Complete");
 			registered = true;
 		}
 	}

@@ -13,6 +13,7 @@ using VRage;
 using System.IO.Pipes;
 using static CaptureStream.CaptureStreamForm;
 using VRage.Utils;
+using System.Diagnostics;
 
 namespace SE_StreamerPlugin
 {
@@ -29,6 +30,7 @@ namespace SE_StreamerPlugin
 		Thread RecorderApplicationthread;
 		Thread CommunicationThread;
 		object instance;
+		Thread mainthread;
 		public void Dispose()
 		{
 			
@@ -46,7 +48,9 @@ namespace SE_StreamerPlugin
 			RecorderApplicationthread.Start();
 			CommunicationThread = new Thread(ModCommunication);
 			CommunicationThread.Start();
-			MyLog.Default.WriteLine(gameInstance.ToString());
+			process = Process.GetCurrentProcess();
+			mainthread = Thread.CurrentThread;
+			//MyLog.Default.WriteLine(gameInstance.ToString());
 		}
 
 		public static void StartApplication()
@@ -61,10 +65,10 @@ namespace SE_StreamerPlugin
 		byte[] transfervbuffer = new byte[300000];
 		public void Update()
 		{
-			MyLog.Default.WriteLineAndConsole("Plugin - Update ");
+			//MyLog.Default.WriteLineAndConsole("Plugin - Update " + (SendAudio == null).ToString() + (SendVideo == null).ToString() );
 			if (MyAPIGateway.Session != null)
 			{
-				MyLog.Default.WriteLineAndConsole("Plugin - Got Session ");
+				//MyLog.Default.WriteLineAndConsole("Plugin - Got Session ");
 				if (!registerevents)
 				{
 					MyLog.Default.WriteLineAndConsole("Plugin - Registered Events");
@@ -86,7 +90,7 @@ namespace SE_StreamerPlugin
 		
 		public void ModCommunication()
 		{
-			while(true)
+			while(mainthread.ThreadState != System.Threading.ThreadState.Stopped)
 			{
 				try
 				{
@@ -105,7 +109,8 @@ namespace SE_StreamerPlugin
 
 							Audio.Read(transferabuffer, 0, audioheader.Length());
 							streamaudioheader = audioheader.getFromBytes(transferabuffer);
-							MyLog.Default.WriteLine("Plugin: ModCommunication - Sending Audio " + audioheader.Length().ToString());
+							haveaudioheader = true;
+							MyLog.Default.WriteLine("Plugin: ModCommunication - Sending Audio header" + audioheader.Length().ToString());
 							SendAudio?.Invoke(transferabuffer, audioheader.Length());
 
 						}
@@ -138,8 +143,11 @@ namespace SE_StreamerPlugin
 						if (!havevideoheader)
 						{
 							var read = Video.Read(transfervbuffer, 0, videoheader.Length());
+							havevideoheader = true;
 							streamvideoheader = videoheader.getFromBytes(transfervbuffer);
+							MyLog.Default.WriteLine("Plugin: ModCommunication - Sending Video header " + (videoheader.Length()).ToString());
 							SendVideo?.Invoke(transfervbuffer, videoheader.Length());
+							
 						}
 						else
 						{
@@ -149,6 +157,7 @@ namespace SE_StreamerPlugin
 							ushort height = BitConverter.ToUInt16(transfervbuffer, sizeof(ushort) + sizeof(int));
 							if (control == 1)
 							{
+								MyLog.Default.WriteLine("Plugin: ModCommunication - Sending Video header EOS " + (sizeof(int) + sizeof(ushort) * 2).ToString());
 								SendVideo?.Invoke(transfervbuffer, sizeof(int) + sizeof(ushort) * 2);
 								havevideoheader = false;
 								continue;
@@ -162,6 +171,7 @@ namespace SE_StreamerPlugin
 								Buffer.BlockCopy(oldbuffer, 0, transfervbuffer, 0, sizeof(int) + sizeof(ushort) * 2);
 							}
 							var rest = Video.Read(transfervbuffer, sizeof(int) + sizeof(ushort) * 2, bytes);
+							MyLog.Default.WriteLine("Plugin: ModCommunication - Sending Video - " + (bytes + sizeof(int) + sizeof(ushort) * 2).ToString());
 							SendVideo?.Invoke(transfervbuffer, bytes + sizeof(int) + sizeof(ushort) * 2);
 						}
 					}
@@ -170,10 +180,14 @@ namespace SE_StreamerPlugin
 				{
 					MyLog.Default.WriteLineAndConsole(ex.ToString());
 				}
-				
+				if (process.HasExited)
+					break;
 				Thread.Sleep(0);
 			}
-			
+
+			RecorderApplicationthread.Abort();
+
+
 		}
 
 		readonly long videostreamcommand = 20982309832901;
@@ -182,12 +196,14 @@ namespace SE_StreamerPlugin
 		private Action<byte[], int> SendAudio;
 		private Action<byte[], int> SendVideo;
 		private Action<int> Control;
-		
+		private Process process;
+
 		private void RequestStreams(object obj)
 		{
 			MyLog.Default.WriteLine("Plugin: RequestStreams - Got Request");
-			if(obj is MyTuple<Action<byte[]>, Action<byte[]>, Action<int>>)
+			if(obj is MyTuple<Action<byte[], int>, Action<byte[], int>, Action<int>>)
 			{
+				MyLog.Default.WriteLine("Plugin: RequestStreams - Registered");
 				var items = (MyTuple<Action<byte[], int>, Action<byte[], int>, Action<int>>)obj;
 				SendAudio = items.Item1;
 				SendVideo = items.Item2;
@@ -199,5 +215,6 @@ namespace SE_StreamerPlugin
 					SendVideo(streamvideoheader.getBytes(), videoheader.Length());
 			}
 		}
+		
 	}
 }
