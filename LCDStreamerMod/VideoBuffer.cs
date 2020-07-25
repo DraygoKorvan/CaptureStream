@@ -79,8 +79,8 @@ namespace LCDText2
 
 		}
 
-		byte[][] videostorage;
-		byte[][] audiostorage;
+		byte[][] videostorage = new byte[10][];
+		byte[][] audiostorage = new byte[10][];
 		int[] vptr = new int[10] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 		int[] aptr = new int[10] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 

@@ -33,12 +33,17 @@ namespace LCDText2
 				MyAPIGateway.Utilities = MyAPIUtilities.Static;
 			MyLog.Default.WriteLineAndConsole("Sending Registration Request to Plugin");
 			MyAPIGateway.Utilities.SendModMessage(20982309832901, new MyTuple<Action<byte[], int>, Action<byte[], int>, Action<int>>(RecieveAudioStream, RecieveVideoStream, RecieveControl));
+
+
+			online = !(MyAPIGateway.Session.OnlineMode == VRage.Game.MyOnlineModeEnum.OFFLINE);
+			isServer = MyAPIGateway.Multiplayer.IsServer || !online;
+
 			if (MyAPIGateway.Session.OnlineMode == VRage.Game.MyOnlineModeEnum.OFFLINE)
 				return;
 
-			online = !(MyAPIGateway.Session.OnlineMode == VRage.Game.MyOnlineModeEnum.OFFLINE);
 
-			isServer = MyAPIGateway.Multiplayer.IsServer || !online;
+
+			
 
 			var def = new packetheader() { steamid = 0, type = 0 };
 			headerpacketlength = MyAPIGateway.Utilities.SerializeToBinary(def).Length;
@@ -109,7 +114,9 @@ namespace LCDText2
 
 		private void RecieveAudioStream(byte[] audio, int length)
 		{
+			//MyAPIGateway.Utilities.ShowMessage("GotPacket", length.ToString());
 			MyLog.Default.WriteLineAndConsole("RecieveAudioStream " + length.ToString());
+
 			//MyAPIGateway.Utilities.ShowMessage("GotPacket", length.ToString());
 			if (isServer)
 			{
@@ -133,16 +140,16 @@ namespace LCDText2
 			//---------------------------
 			//------- PREFORMAT GOES HERE
 			//---------------------------
-			int offset = 0;
+
 			if(firstvideopacket)
 			{
-				offset += VideoBuffer.VideoHeader.Length();
+				
 				firstvideopacket = false;
 			}
 			else
 			{
-				var newlength = EncodeImageToChar(video, offset);
-				length = newlength;
+				length = EncodeImageToChar(video);
+				
 			}
 
 			
@@ -170,17 +177,20 @@ namespace LCDText2
 		/// <summary>
 		/// Begin frame encoding code below
 		/// </summary>
-		int EncodeImageToChar(byte[] encodedFrame, int offset)
+		int EncodeImageToChar(byte[] encodedFrame)
 		{
-			if (offset + sizeof(int) + sizeof(ushort) >= encodedFrame.Length)
+			if (sizeof(int) + sizeof(ushort) >= encodedFrame.Length)
 				return encodedFrame.Length;
-			int control = BitConverter.ToInt32(encodedFrame, offset);
-			ushort stride = BitConverter.ToUInt16(encodedFrame, offset + sizeof(int));
-			ushort height = BitConverter.ToUInt16(encodedFrame, offset + sizeof(ushort));
-			offset += sizeof(int) + sizeof(ushort) * 2;
+			int control = BitConverter.ToInt32(encodedFrame, 0 );
+			ushort stride = BitConverter.ToUInt16(encodedFrame,   sizeof(int));
+			ushort height = BitConverter.ToUInt16(encodedFrame,   sizeof(ushort));
+			var offset = sizeof(int) + sizeof(ushort) * 2;
+			MyLog.Default.WriteLine("Mod - EncodeImageToChar height " + height.ToString());
 			ushort newstride = (ushort)((stride / 3) *2);
 			newstride += (ushort)(newstride % 2);
+			MyLog.Default.WriteLine("Mod - EncodeImageToChar newstride " + newstride.ToString());
 			int encodedlength = newstride * height + offset;
+			MyLog.Default.WriteLine("Mod - EncodeImageToChar encodeln " + encodedlength.ToString());
 			if (encodingbuffer.Length < encodedlength)
 			{
 				encodingbuffer = new byte[encodedlength];
@@ -191,15 +201,15 @@ namespace LCDText2
 				int encadjust = i * newstride;
 				for(int ii = 0; ii + 2 < stride; ii+= 3)
 				{
-					byte r = encodedFrame[adjust + (ii * 3) + 2];
-					byte g = encodedFrame[adjust + (ii * 3) + 1];
-					byte b = encodedFrame[adjust + (ii * 3)];
+					byte r = encodedFrame[adjust + ii + 2];
+					byte g = encodedFrame[adjust + ii + 1];
+					byte b = encodedFrame[adjust + ii];
 					BitConverter.GetBytes(ColorToChar(r, g, b)).CopyTo(encodingbuffer, encadjust + ii * 2);
 				}
 			});
 			Buffer.BlockCopy(BitConverter.GetBytes(newstride), 0, encodedFrame, offset + sizeof(int), sizeof(ushort));
 			Buffer.BlockCopy(encodingbuffer, 0, encodedFrame, offset, encodedlength);
-			return encodedlength;
+			return encodedlength + offset;
 		}
 		ushort ColorToChar(byte r, byte g, byte b)
 		{

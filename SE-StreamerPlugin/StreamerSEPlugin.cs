@@ -123,6 +123,8 @@ namespace SE_StreamerPlugin
 								MyLog.Default.WriteLine("Plugin: ModCommunication - Sending Audio EOS ");
 								SendAudio?.Invoke(transferabuffer, sizeof(int));
 								haveaudioheader = false;//reset
+								//havevideoheader = false;
+								
 								continue;
 							}
 							if (bytes + sizeof(int) > transferabuffer.Length)
@@ -152,6 +154,10 @@ namespace SE_StreamerPlugin
 						else
 						{
 							var read = Video.Read(transfervbuffer, 0, sizeof(int) + sizeof(ushort) * 2);
+							while(read < sizeof(int) + sizeof(ushort) * 2)
+							{
+								read += Video.Read(transfervbuffer, read, read - sizeof(int) + sizeof(ushort) * 2);
+							}
 							int control = BitConverter.ToInt32(transfervbuffer, 0);
 							ushort stride = BitConverter.ToUInt16(transfervbuffer, sizeof(int));
 							ushort height = BitConverter.ToUInt16(transfervbuffer, sizeof(ushort) + sizeof(int));
@@ -160,6 +166,7 @@ namespace SE_StreamerPlugin
 								MyLog.Default.WriteLine("Plugin: ModCommunication - Sending Video header EOS " + (sizeof(int) + sizeof(ushort) * 2).ToString());
 								SendVideo?.Invoke(transfervbuffer, sizeof(int) + sizeof(ushort) * 2);
 								havevideoheader = false;
+								haveaudioheader = false;
 								continue;
 
 							}
@@ -171,7 +178,7 @@ namespace SE_StreamerPlugin
 								Buffer.BlockCopy(oldbuffer, 0, transfervbuffer, 0, sizeof(int) + sizeof(ushort) * 2);
 							}
 							var rest = Video.Read(transfervbuffer, sizeof(int) + sizeof(ushort) * 2, bytes);
-							MyLog.Default.WriteLine("Plugin: ModCommunication - Sending Video - " + (bytes + sizeof(int) + sizeof(ushort) * 2).ToString());
+							MyLog.Default.WriteLine("Plugin: ModCommunication - Sending Video - " + (rest + sizeof(int) + sizeof(ushort) * 2).ToString());
 							SendVideo?.Invoke(transfervbuffer, bytes + sizeof(int) + sizeof(ushort) * 2);
 						}
 					}
