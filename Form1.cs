@@ -30,8 +30,8 @@ namespace CaptureStream
 		public static extern void ReleaseDC(IntPtr hwnd, IntPtr dc);
 
 
-		public static AnonymousPipeServerStream VideoStream = new AnonymousPipeServerStream(PipeDirection.In, HandleInheritability.Inheritable);
-		public static AnonymousPipeServerStream AudioStream = new AnonymousPipeServerStream(PipeDirection.In, HandleInheritability.Inheritable);
+		public static AnonymousPipeServerStream VideoStream = new AnonymousPipeServerStream(PipeDirection.Out, HandleInheritability.Inheritable);
+		public static AnonymousPipeServerStream AudioStream = new AnonymousPipeServerStream(PipeDirection.Out, HandleInheritability.Inheritable);
 
 		bool recording = false;
 		bool playback = false;
