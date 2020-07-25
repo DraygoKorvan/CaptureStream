@@ -1,5 +1,4 @@
 ﻿using LCDText2;
-using Sandbox.ModAPI;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -55,7 +54,7 @@ namespace LocalLCD
 			{
 				nextAudioTick += tickspersecond;
 				var bytes = videoBuffer.ReadAudio(out audioframes);
-				if(bytes != 0 && !(LCDWriterCore.instance.offline || videoBuffer.steamid == MyAPIGateway.Multiplayer.MyId))
+				if(bytes != 0)
 				{
 					//do process.
 					foreach(var lcd in subscribers)
@@ -78,7 +77,7 @@ namespace LocalLCD
 				ushort height = BitConverter.ToUInt16(videoframes, videoptr + sizeof(int) + sizeof(ushort));
 				videoptr += sizeof(int) + sizeof(ushort) * 2;
 				var length = stride * height;
-				string s_frame = getString(videoframes, videoptr, length /2 +videoBuffer.videoHeader.height);
+				string s_frame = getString(videoframes, videoptr, stride, height);
 				//convert to string
 				foreach (var lcd in subscribers)
 				{
@@ -88,14 +87,27 @@ namespace LocalLCD
 				videoptr += length;
 			}
 		}
+
 		char[] charbuffer = new char[1];
-		private string getString(byte[] videoframes, int videoptr, int length)
+		private string getString(byte[] videoframes, int videoptr, int width, int height)
 		{
+			int length = (width * height) + height;
 			if(charbuffer.Length < length)
 				charbuffer = new char[length];
-			//decode
+
+			for (int y = 0; y < height; y++)
+			{
+				int adv = (y * width) + y;
+				for (int x = 0; x < width; x++)
+				{
+					charbuffer[adv + x + 1] = (char)BitConverter.ToUInt16(videoframes, videoptr + (((y * width) + x) * 2));
+				}
+				charbuffer[adv] = '\n';
+			}
 
 			return new string(charbuffer, 0, length);
 		}
+
+
 	}
 }
