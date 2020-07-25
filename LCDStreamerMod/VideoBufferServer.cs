@@ -170,8 +170,8 @@ namespace LCDText2
 			{
 				encodingbuffer = new byte[encodedlength];
 			}
-
-			Parallel.For(0, height, i => {
+		
+			MyAPIGateway.Parallel.For(0, height, i => {
 				int adjust = offset + i * stride;
 				int encadjust = offset + i * newstride;
 				for(int ii = 0; ii + 2 < stride; ii+= 3)
