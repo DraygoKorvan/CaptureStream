@@ -55,7 +55,7 @@ namespace CaptureStream
 		long framerate = 1;
 		int playbackframerate = 20;
 		long frameremainder = 0;
-		BinaryWriter outFile, outAudio;
+		AnonymousPipeServerStream outFile, outAudio;
 		private MMDevice device;
 		private WasapiOut blankplayer;
 		private SilenceProvider silence;
@@ -100,7 +100,7 @@ namespace CaptureStream
 			silence = new SilenceProvider(sourceFormat);
 			blankplayer.Init(silence);
 
-			text_encoding.Text = sourceFormat.BitsPerSample.ToString();
+			text_encoding.Text = sourceFormat.Encoding.ToString();
 			
 			audio.DataAvailable += Audio_DataAvailable;
 			audio.RecordingStopped += Audio_RecordingStopped;
@@ -154,9 +154,14 @@ namespace CaptureStream
 
 		private void Audio_RecordingStopped(object sender, StoppedEventArgs e)
 		{
-			outAudio.Write(0);
-			outAudio.Flush();
-			outAudio.Close();
+			if(outAudio != null)
+			{
+
+				outAudio.Write(new byte[1] { 0 }, 0, 1);
+				outAudio.Flush();
+			}
+
+			//outAudio.Close();
 			//outAudio = new BinaryWriter(new FileStream("mydataA2", FileMode.Create));
 		}
 		private byte[] StereoToMono(byte[] input)
@@ -193,9 +198,10 @@ namespace CaptureStream
 					aheader.SampleRate = six.WaveFormat.SampleRate;
 					aheader.AverageBytesPerSecond = six.WaveFormat.AverageBytesPerSecond / 2;
 					aheader.Channels = six.WaveFormat.Channels / 2;
-					outAudio.Write(header.getBytes());
+					var dat = header.getBytes();
+					outAudio.Write(dat, 0, dat.Length);
 				}
-				outAudio.Write(bytesread / 2);
+				outAudio.Write(BitConverter.GetBytes(bytesread / 2), 0 , sizeof(int));
 				outAudio.Write(output, 0, bytesread / 2);
 				outAudio.Flush();
 				audiolengthmonitor = bytesread / 2;
@@ -263,8 +269,8 @@ namespace CaptureStream
 		byte[] outcolor = new byte[3];
 		byte[] frameout;
 		byte[] bmpframe;
-		bool wait = false;
-		bool playing = false;
+
+
 		void UpdateStreaming()
 		{
 			while(true)
@@ -274,6 +280,14 @@ namespace CaptureStream
 				{
 					if(!Timer.IsRunning)
 					{
+						
+						outAudio = AudioStream;
+						outFile = VideoStream;
+						if(!outFile.IsConnected || !outAudio.IsConnected)
+						{
+							recording = false;
+							return;
+						}
 						//just started
 						Timer.Start();
 						tick = 0;
@@ -281,18 +295,17 @@ namespace CaptureStream
 						blankplayer.Play();
 						needaudioheader = true;
 						audio.StartRecording();
-						outAudio = new BinaryWriter(AudioStream);
-						outFile = new BinaryWriter(VideoStream);
+
 						//outAudio = new BinaryWriter(new FileStream("mydataA", FileMode.Create));
 						//outFile = new BinaryWriter(new FileStream("mydata", FileMode.Create));
-						outFile.Write(header.getBytes());
+						var headerbytes = header.getBytes();
+						outFile.Write(headerbytes, 0, headerbytes.Length);
 						outFile.Flush();
 
 					}
 					if((framerate) * tick + framerateadd <= Timer.ElapsedTicks)
 					{
 						var start = Timer.ElapsedTicks;
-						wait = false;
 						tick++;
 						tickremainder += frameremainder;
 						if(tickremainder > framerate)
@@ -326,20 +339,16 @@ namespace CaptureStream
 						//frameout = new byte[bytes];
 						Marshal.Copy(ptr, frameout, 0, bytes);
 
-						outFile.Write(control);
-						outFile.Write((ushort)stride);
-						outFile.Write((ushort)bmpData.Height);
-						outFile.Write(frameout);
+						outFile.Write(BitConverter.GetBytes(control), 0, sizeof(int));
+						outFile.Write(BitConverter.GetBytes((ushort)stride), 0, sizeof(ushort));
+						outFile.Write(BitConverter.GetBytes((ushort)bmpData.Height), 0, sizeof(ushort));
+						outFile.Write(frameout, 0, frameout.Length);
 
 						bmpbuffer.UnlockBits(bmpData);
 
 						outFile.Flush();
 						frameratemonitor = Timer.ElapsedTicks - start;
 					}
-					else
-					{
-						wait = true;
-					}	
 				}
 				else
 				{
@@ -349,7 +358,7 @@ namespace CaptureStream
 
 						Timer.Stop();
 						control = 1;
-						outFile.Write(control);
+						outFile.Write(BitConverter.GetBytes(control), 0 , sizeof(int));
 						outFile.Close();
 						//outFile = new BinaryWriter(new FileStream("mydata2", FileMode.Create));
 						audio.StopRecording();

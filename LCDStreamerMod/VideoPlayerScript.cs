@@ -47,7 +47,30 @@ namespace LocalLCD
 		public VideoPlayerScript(Sandbox.ModAPI.IMyTextPanel panel)
 		{
 			AudioEmitter = new MyEntity3DSoundEmitter((MyEntity)panel);
+			Parent = panel;
+			
 
+		}
+
+		public static VideoPlayerScript Factory(Sandbox.ModAPI.IMyTextPanel Panel)
+		{
+			return new VideoPlayerScript(Panel);
+		}
+
+		public void Update()
+		{
+			if(fake != null)
+			{
+				var matrix = new MatrixD(Parent.WorldMatrix);
+				matrix.Translation += Parent.WorldMatrix.Left * (Parent.CubeGrid.GridSize * 0.5);
+				matrix.Translation += Parent.WorldMatrix.Forward * -0.005d;
+				fake.SetWorldMatrix(matrix);
+			}
+
+        }
+
+		public void InitFake()
+		{ 
 			if (fake != null)
 				return;
 			//WideLCDScreenVideoPlayer
@@ -65,7 +88,7 @@ namespace LocalLCD
 			foreach (var grid in prefab.CubeGrids)
 			{
 				var gridBuilder = (MyObjectBuilder_CubeGrid)grid.Clone();
-				gridBuilder.PositionAndOrientation = new MyPositionAndOrientation(panel.WorldMatrix.Translation, grid.PositionAndOrientation.Value.Forward, grid.PositionAndOrientation.Value.Up);
+				gridBuilder.PositionAndOrientation = new MyPositionAndOrientation(Parent.WorldMatrix.Translation, grid.PositionAndOrientation.Value.Forward, grid.PositionAndOrientation.Value.Up);
 
 				tempList.Add(gridBuilder);
 			}
@@ -82,8 +105,7 @@ namespace LocalLCD
 				cubegrid.IsStatic = true;
 				cubegrid.AngularVelocity = Vector3.Zero;
 				cubegrid.LinearVelocity = Vector3.Zero;
-				Parent = panel;
-				fake = (IMyCubeGrid)MyAPIGateway.Entities.CreateFromObjectBuilderAndAdd(item);
+				fake = (IMyCubeGrid) MyAPIGateway.Entities.CreateFromObjectBuilderAndAdd(item);
 				fake.Flags |= EntityFlags.NeedsWorldMatrix | EntityFlags.IsNotGamePrunningStructureObject;
 				fake.NeedsWorldMatrix = true;
 				Parent.NeedsWorldMatrix = true;
@@ -124,25 +146,7 @@ namespace LocalLCD
 				}
 
 			}
-
-		}
-
-		public static VideoPlayerScript Factory(Sandbox.ModAPI.IMyTextPanel Panel)
-		{
-			return new VideoPlayerScript(Panel);
-		}
-
-		public void Update()
-		{
-			if(fake != null)
-			{
-				var matrix = new MatrixD(Parent.WorldMatrix);
-				matrix.Translation += Parent.WorldMatrix.Left * (Parent.CubeGrid.GridSize * 0.5);
-				matrix.Translation += Parent.WorldMatrix.Forward * -0.005d;
-				fake.SetWorldMatrix(matrix);
-			}
-
-        }
+	}
 
 		public void Main()
 		{
@@ -166,6 +170,9 @@ namespace LocalLCD
 
 		public void PlayNextFrame(string chars)
 		{
+
+			if (fake == null)
+				InitFake();
 			if(surface != null)
 			{
 				surface.WriteText(chars);

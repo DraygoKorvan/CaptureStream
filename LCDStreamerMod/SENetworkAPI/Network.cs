@@ -48,9 +48,9 @@ namespace SENetworkAPI
 				MyAPIGateway.Utilities.MessageEntered += HandleChatInput;
 			}
 
-			MyAPIGateway.Multiplayer.RegisterMessageHandler(ComId, HandleIncomingPacket);
+			MyAPIGateway.Multiplayer?.RegisterMessageHandler(ComId, HandleIncomingPacket);
 
-			MyLog.Default.Info($"[NetworkAPI] Initialized. Type: {GetType().Name} ComId: {ComId} Name: {ModName} Keyword: {Keyword}");
+			//MyLog.Default.Info($"[NetworkAPI] Initialized. Type: {GetType().Name} ComId: {ComId} Name: {ModName} Keyword: {Keyword}");
 		}
 
 		/// <summary>
@@ -303,7 +303,7 @@ namespace SENetworkAPI
 			if (IsInitialized)
 				return;
 
-			if (!MyAPIGateway.Multiplayer.IsServer)
+			if (!MyAPIGateway.Multiplayer?.IsServer ?? false)
 			{
 				Instance = new Client(comId, modName, keyword);
 			}

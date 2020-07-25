@@ -47,17 +47,26 @@ namespace LocalLCD
 
 		public override void Init(MyObjectBuilder_EntityBase objectBuilder)
 		{
+			
 			ObjectBuilder = objectBuilder;
 			
-            base.Init(objectBuilder);
-			if (!NetworkAPI.IsInitialized)
+
+			if (!(MyAPIGateway.Session.OnlineMode == VRage.Game.MyOnlineModeEnum.OFFLINE) && !NetworkAPI.IsInitialized)
 			{
 				NetworkAPI.Init(LCDWriterCore.COMID, LCDWriterCore.NETWORKNAME);
 			}
+			base.Init(objectBuilder);
+			
 			CurrentBuffer = new NetSync<ulong>(this, TransferType.Both, 1);
 			CurrentBuffer.SyncOnLoad = true;
 			CurrentBuffer.LimitToSyncDistance = true;
 			CurrentBuffer.ValueChanged += Changed_Channel;
+
+			if (!controls_created)
+			{
+
+				CreateTerminalControls();
+			}
 		}
 
 		private void Changed_Channel(ulong arg1, ulong arg2)
@@ -70,21 +79,17 @@ namespace LocalLCD
 
 		internal void PlayAudio(byte[] audioframes, int bytes, VideoBuffer.AudioHeader audioHeader)
 		{
-			Script.PlayAudio(audioframes, bytes, audioHeader);
+			if(Script != null)
+				Script.PlayAudio(audioframes, bytes, audioHeader);
 		}
 
 		public override void OnAddedToContainer()
 		{
-			if (this.Entity.Physics == null)
-				return;
-			if(!controls_created)
-			{
-				
-				CreateTerminalControls();
-			}
+
+
 			TextPanel = Entity as IMyTextPanel;
 			this.NeedsUpdate |= VRage.ModAPI.MyEntityUpdateEnum.EACH_FRAME;
-			Script = new VideoPlayerScript(this.Entity as IMyTextPanel);
+			
 		}
 
 		private void TextPanel_ChannelChanged(IMyTerminalBlock obj)
@@ -112,6 +117,8 @@ namespace LocalLCD
 			}
 			if(Selected < Obj.Count)
 			{
+				if(Script == null)
+					Script = new VideoPlayerScript(this.Entity as IMyTextPanel);
 				ulong channel;
 				if(SteamIdGetter.TryGetValue(Selected, out channel))
 				{
@@ -127,7 +134,8 @@ namespace LocalLCD
 		}
 		internal void PlayNextFrame(string s_frame)
 		{
-			Script.PlayNextFrame(s_frame);
+			if(Script != null)
+				Script.PlayNextFrame(s_frame);
 		}
 
 
@@ -135,7 +143,7 @@ namespace LocalLCD
 		internal void SetChannel(ulong currentChannel)
 		{
 			//network updates set this. 
-			CurrentBuffer.Value = currentChannel;
+			//CurrentBuffer.Value = currentChannel;
 			TextPanel_ChannelChanged(this.Entity as IMyTerminalBlock);
         }
 
@@ -153,6 +161,7 @@ namespace LocalLCD
 			controls_created = true;
 			if (ComboListBox == null)
 			{
+				
 				ComboListBox = MyAPIGateway.TerminalControls.CreateControl<IMyTerminalControlCombobox, IMyTextPanel>("Script List");
 				ComboListBox.Enabled = ControlEnabled;
 				ComboListBox.Title = MyStringId.GetOrCompute("Channel List");
