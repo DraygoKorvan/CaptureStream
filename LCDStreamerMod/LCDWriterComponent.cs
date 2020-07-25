@@ -48,6 +48,7 @@ namespace LocalLCD
 		public override void Init(MyObjectBuilder_EntityBase objectBuilder)
 		{
 			ObjectBuilder = objectBuilder;
+			
             base.Init(objectBuilder);
 			if (!NetworkAPI.IsInitialized)
 			{
@@ -119,7 +120,11 @@ namespace LocalLCD
 
 			}
         }
-
+		public override void UpdateAfterSimulation()
+		{
+			if(Script != null)
+				Script.Update();
+		}
 		internal void PlayNextFrame(string s_frame)
 		{
 			Script.PlayNextFrame(s_frame);
