@@ -107,8 +107,13 @@ namespace LocalLCD
 				cubegrid.IsStatic = true;
 				cubegrid.AngularVelocity = Vector3.Zero;
 				cubegrid.LinearVelocity = Vector3.Zero;
-				fake = (IMyCubeGrid) MyAPIGateway.Entities.CreateFromObjectBuilderAndAdd(item);
-				fake.Flags |= EntityFlags.NeedsWorldMatrix | EntityFlags.IsNotGamePrunningStructureObject;
+				var newfake = (MyCubeGrid)MyAPIGateway.Entities.CreateFromObjectBuilder(item);
+				newfake.SyncFlag = false;
+				newfake.Save = false;
+				newfake.IsPreview = true;
+				newfake.Flags |= EntityFlags.NeedsWorldMatrix | EntityFlags.IsNotGamePrunningStructureObject;
+				fake = newfake;
+				MyAPIGateway.Entities.AddEntity(fake);
 				fake.NeedsWorldMatrix = true;
 				Parent.NeedsWorldMatrix = true;
 				Parent.Parent.NeedsWorldMatrix = true;

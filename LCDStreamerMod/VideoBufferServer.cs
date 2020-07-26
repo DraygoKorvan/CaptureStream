@@ -27,6 +27,7 @@ namespace LCDText2
 		{
 			instance = this;
 		}
+		bool registeredmessagehandler = false;
 		public override void BeforeStart()
 		{
 			if (MyAPIGateway.Utilities == null)
@@ -43,54 +44,82 @@ namespace LCDText2
 
 
 
-			
 
-			var def = new packetheader() { steamid = 0, type = 0 };
-			headerpacketlength = MyAPIGateway.Utilities.SerializeToBinary(def).Length;
+
+			//var def = new packetheader() { steamid = 0, type = 0 };
+			headerpacketlength = packetheader.getLength();
 			packetheaderbuffer = new byte[headerpacketlength];
+			registeredmessagehandler = true;
 			MyAPIGateway.Multiplayer.RegisterMessageHandler(videostreamcommand, RecievedMessage);
+		}
+
+		protected override void UnloadData()
+		{
+			if(registeredmessagehandler)
+			MyAPIGateway.Multiplayer.UnregisterMessageHandler(videostreamcommand, RecievedMessage);
+			base.UnloadData();
 		}
 
 		int headerpacketlength = 0;
 		byte[] packetheaderbuffer;
-		[ProtoContract]
+
 		public struct packetheader
 		{
-			[ProtoMember(1)]
 			public ushort type;
-			[ProtoMember(2)]
 			public ulong steamid;
+			public static int getLength()
+			{
+				return sizeof(ushort) + sizeof(ulong);
+			}
+			public static packetheader getFromBytes(byte[] pack, int offset)
+			{
+				var packeth = new packetheader();
+				packeth.type = BitConverter.ToUInt16(pack, offset);
+				packeth.steamid = BitConverter.ToUInt64(pack, offset + sizeof(ushort));
+				return packeth;
+			}
+
+			public byte[] CreateMessage(byte[] obj, int length)
+			{
+
+				var message = new byte[length + getLength()];//REEEE
+				BitConverter.GetBytes(type).CopyTo(obj, 0);
+				BitConverter.GetBytes(steamid).CopyTo(obj, sizeof(ushort));
+				Buffer.BlockCopy(obj, 0 , message, getLength(), length);
+				return message;
+			}
+
 		}
 		private void recievedMessageInternal(byte[] obj, int offset, int length, ushort type, ulong steamid)
 		{
-			//MyLog.Default.WriteLineAndConsole("recievedMessageInternal " + length.ToString());
-			if (online && isServer)
+			MyLog.Default.WriteLineAndConsole("recievedMessageInternal " + length.ToString());
+			MyLog.Default.WriteLineAndConsole($"isServer {online} {isServer} {offset} {steamid == (MyAPIGateway.Multiplayer?.MyId ?? 0)}");
+			if (online && isServer && steamid == MyAPIGateway.Multiplayer.MyId)
 			{
-				foreach(IMyPlayer id in idents)
-				{
-
-					if (id.SteamUserId == steamid)
-						continue;
-					
-					MyAPIGateway.Multiplayer.SendMessageTo(videostreamcommand, obj, id.SteamUserId);
-				}
+				if(offset == 0)
+					SendMessageToOthersExcept(obj, length, true);
 			}
 			VideoBuffer buffer;
-			if(!videoBuffer.TryGetValue(steamid, out buffer))
+			lock (videoBuffer)
 			{
-				MyAPIGateway.Utilities.ShowMessage("Creating Channel ", steamid.ToString());
-				videoBuffer.Add(steamid, buffer = new VideoBuffer(steamid));
+				
+				if (!videoBuffer.TryGetValue(steamid, out buffer))
+				{
+					MyAPIGateway.Utilities.ShowMessage("Creating Channel ", steamid.ToString());
+					videoBuffer.Add(steamid, buffer = new VideoBuffer(steamid));
+				}
 			}
+
 			switch(type)
 			{
 				case 0: //use this for control in the future, add remove listeners?
 					return;
 				case 1:
-					//MyLog.Default.WriteLineAndConsole("AddToAudioBuffer " + length.ToString());
+					MyLog.Default.WriteLineAndConsole("AddToAudioBuffer " + length.ToString());
 					buffer.AddToAudioBuffer(obj, offset, length);
 					return;
 				case 2:
-					//MyLog.Default.WriteLineAndConsole("AddToVideoBuffer " + length.ToString());
+					MyLog.Default.WriteLineAndConsole("AddToVideoBuffer " + length.ToString());
 					buffer.AddToVideoBuffer(obj, offset, length);
 					return;
 				default:
@@ -99,37 +128,34 @@ namespace LCDText2
 		}
 		private void RecievedMessage(byte[] obj)
 		{
+
+			MyLog.Default.WriteLineAndConsole($"RecievedMessage getting header {packetheaderbuffer.Length} {obj.Length}");
 			try
 			{
-				Buffer.BlockCopy(obj, 0, packetheaderbuffer, 0, headerpacketlength);
-				var packet = MyAPIGateway.Utilities.SerializeFromBinary<packetheader>(packetheaderbuffer);
-				recievedMessageInternal(obj, headerpacketlength, obj.Length - headerpacketlength, packet.type, packet.steamid);
+				var headerpacket = packetheader.getFromBytes(obj, 0);
+				var offset = packetheader.getLength();
+				//Buffer.BlockCopy(obj, 0, headerpacket, 0, headerpacket.Length);
+				//var packet = MyAPIGateway.Utilities.SerializeFromBinary<packetheader>(packetheaderbuffer);
+				MyLog.Default.WriteLineAndConsole($"RecievedMessage packet {headerpacket.steamid} {headerpacket.type}");
+				recievedMessageInternal(obj, offset, obj.Length - offset, headerpacket.type, headerpacket.steamid);
 			}
-			catch
+			catch (Exception ex)
 			{
-
+				MyLog.Default.WriteLineAndConsole(ex.ToString());
 			}
 
 		}
 
 		private void RecieveAudioStream(byte[] audio, int length)
 		{
-			//MyAPIGateway.Utilities.ShowMessage("GotPacket", length.ToString());
-			//MyLog.Default.WriteLineAndConsole("RecieveAudioStream " + length.ToString());
-
-			//MyAPIGateway.Utilities.ShowMessage("GotPacket", length.ToString());
-
-			recievedMessageInternal(audio, 0, length, 1, 0);
+			recievedMessageInternal(audio, 0, length, 1, MyAPIGateway.Multiplayer?.MyId ?? (ulong)0);
 
 			if (!online)
 				return;
 			if(!isServer)
 			{
 				var header = new packetheader() { type = 1, steamid = MyAPIGateway.Multiplayer.MyId };
-				var pheader = MyAPIGateway.Utilities.SerializeToBinary(header);
-				var message = new byte[length + pheader.Length];//REEEE
-				Buffer.BlockCopy(pheader, 0, message, 0, pheader.Length);
-				Buffer.BlockCopy(audio, 0, message, pheader.Length, length);
+				var message = header.CreateMessage(audio, length);
 				MyAPIGateway.Multiplayer.SendMessageToServer(videostreamcommand, message);
 			}
 
@@ -139,6 +165,7 @@ namespace LCDText2
 		{
 			public int offset;
 			public int length;
+
 		}
 
 		private void RecieveVideoStream(byte[] video, int length)
@@ -168,19 +195,45 @@ namespace LCDText2
 			//---------------------------
 			if (isServer)
 			{
-				recievedMessageInternal(video, 0,  length, 2, 0);
+				recievedMessageInternal(video, 0,  length, 2, MyAPIGateway.Multiplayer?.MyId ?? (ulong)0);
 				return;
 			}
 			if (!online)
 				return;
 			var header = new packetheader() { type = 2, steamid = MyAPIGateway.Multiplayer.MyId };
-			var pheader = MyAPIGateway.Utilities.SerializeToBinary(header);
-			var message = new byte[length + pheader.Length];//REEEE
-			Buffer.BlockCopy(pheader, 0, message, 0, pheader.Length);
-			Buffer.BlockCopy(video, 0, message, pheader.Length, length);
+			var message = header.CreateMessage(video, length);
 			MyAPIGateway.Multiplayer.SendMessageToServer(videostreamcommand, message);
 		}
+		private void SendMessageToOthersExcept(byte[] obj, int length, bool addheader)
+		{
+			MyLog.Default.WriteLineAndConsole("SendMessageToOthersExcept");
+			MyAPIGateway.Utilities.InvokeOnGameThread(() => {
+				MyLog.Default.WriteLineAndConsole("OnMainTread.");
+				idents.Clear();
+				if (MyAPIGateway.Multiplayer?.Players == null)
+					return;
+				MyAPIGateway.Multiplayer.Players.GetPlayers(idents);
+				MyLog.Default.WriteLineAndConsole("gotplayers?");
+				byte[] message = obj;
+				if(addheader)
+				{
+					var header = new packetheader() { type = 2, steamid = MyAPIGateway.Multiplayer.MyId };
+					message = header.CreateMessage(obj, length);
+				}
+				foreach (IMyPlayer id in idents)
+				{
 
+					if (id.SteamUserId == MyAPIGateway.Multiplayer.MyId)
+						continue;
+					MyLog.Default.WriteLineAndConsole($"sendMessageTo  {id.SteamUserId}  {obj.Length}" );
+					MyAPIGateway.Multiplayer.SendMessageTo(videostreamcommand, obj, id.SteamUserId);
+				}
+
+
+			});
+
+			
+		}
 		byte[] encodingbuffer = new byte[1]; // will grow to match. 
 		/// <summary>
 		/// Begin frame encoding code below
@@ -264,7 +317,7 @@ namespace LCDText2
 
 				if (tick == 60)
 				{
-					MyLog.Default.WriteLineAndConsole("Sending Registration Request to Plugin");
+					//MyLog.Default.WriteLineAndConsole("Sending Registration Request to Plugin");
 					MyAPIGateway.Utilities.SendModMessage(20982309832901, new MyTuple<Action<byte[], int>, Action<byte[], int>, Action<int>>(RecieveAudioStream, RecieveVideoStream, RecieveControl));
 				}
 				if (tick == 60)

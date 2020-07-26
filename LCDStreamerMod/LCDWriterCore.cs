@@ -11,10 +11,11 @@ using Sandbox.ModAPI;
 using VRage.ModAPI;
 using System.Runtime.InteropServices;
 using VRage;
-using SENetworkAPI;
 using System.Collections.Concurrent;
 using LCDText2;
 using System.Diagnostics;
+using ProtoBuf;
+using VRage.Game.ModAPI;
 
 namespace LocalLCD
 {
@@ -41,15 +42,13 @@ namespace LocalLCD
 
 		public override void UpdateAfterSimulation()
 		{
-			if (!NetworkAPI.IsInitialized)
-			{
-				NetworkAPI.Init(COMID, NETWORKNAME);
-			}
 			if (!init)
 			{
 				HudAPI = new HudAPIv2(RegisterHudAPI);
 				init = true;
 				offline = MyAPIGateway.Session.OnlineMode == VRage.Game.MyOnlineModeEnum.OFFLINE;
+				if (!offline)
+					MyAPIGateway.Multiplayer.RegisterMessageHandler(COMID, UpdateChannelRecieve);
 				isServer = offline || MyAPIGateway.Multiplayer.IsServer;
 				isDedicated = isServer && MyAPIGateway.Utilities.IsDedicated;
 				time.Start();
@@ -58,6 +57,80 @@ namespace LocalLCD
 			foreach(var controller in controllers)
 			{
 				controller.Value.SendUpdate(time.ElapsedTicks);
+			}
+		}
+		[ProtoContract]
+		public struct ChannelUpdateMessage
+		{
+			[ProtoMember(1)]
+			public long EntityId;
+			[ProtoMember(2)]
+			public ulong Channel;
+			[ProtoMember(3)]
+			public ulong Setter;
+		}
+		
+		private void UpdateChannelRecieve(byte[] obj)
+		{
+			try
+			{
+				var update = MyAPIGateway.Utilities.SerializeFromBinary<ChannelUpdateMessage>(obj);
+				if (isServer)
+				{
+					SendToEveryoneExcept(obj, update.Setter);
+				}
+				UpdateInternal(update.EntityId, update.Channel);
+			}
+			catch
+			{
+
+			}
+
+
+		}
+
+		private void UpdateInternal(long entityId, ulong channel)
+		{
+			ChannelRegister value;
+			if(ChannelDictionary.TryGetValue(entityId, out value))
+			{
+				value.channel = channel;
+				if(value.component != null)
+				{
+					value.component.UpdateChannelInternal(channel);
+				}
+			}
+		}
+
+		private void SendUpdate(long entityId, ulong arg2, ulong requester)
+		{
+			if (offline)
+				return;
+			var update = MyAPIGateway.Utilities.SerializeToBinary(new ChannelUpdateMessage() { EntityId = entityId, Channel = arg2, Setter = requester });
+			if (isServer)
+			{
+				SendToEveryoneExcept(update, requester);
+			}
+			else
+			{
+				MyAPIGateway.Multiplayer.SendMessageToServer(COMID, update);
+			}
+		}
+		static List<IMyPlayer> players = new List<IMyPlayer>();
+		static void SendToEveryoneExcept(byte[] obj, ulong steamidexception)
+		{
+			if (!instance.init)
+				return;
+			if (!instance.isServer)
+				return;
+			if (instance.offline)
+				return;
+			players.Clear();
+			MyAPIGateway.Multiplayer.Players.GetPlayers(players);
+			foreach(IMyPlayer player in players)
+			{
+				if (player.SteamUserId != steamidexception)
+					MyAPIGateway.Multiplayer.SendMessageTo(COMID, obj, player.SteamUserId);
 			}
 		}
 
@@ -83,6 +156,46 @@ namespace LocalLCD
 				controller.Subscribe(localLCDWriterComponent, time.ElapsedTicks);
 			}
 		}
+		public class ChannelRegister
+		{
+			public ulong channel = 0;
+			public LocalLCDWriterComponent component;
+		}
+
+
+		public static Dictionary<long, ChannelRegister> ChannelDictionary = new Dictionary<long, ChannelRegister>();
+		internal void UpdateChannel(LocalLCDWriterComponent Comp, ulong arg2, ulong requester)
+		{
+			ChannelRegister value;
+			if(!ChannelDictionary.TryGetValue(Comp.Entity.EntityId, out value))
+			{
+				value = new ChannelRegister();
+				value.component = Comp;
+				ChannelDictionary.Add(Comp.Entity.EntityId, value);
+			}
+			value.channel = arg2;
+			if(!offline)
+				SendUpdate(Comp.Entity.EntityId, arg2, requester);
+		}
+
+		internal static bool TryRegisterAndGetChannel(LocalLCDWriterComponent Comp, out ulong channel)
+		{
+			ChannelRegister reg;
+			var ret = ChannelDictionary.TryGetValue(Comp.Entity.EntityId, out reg);
+			if(ret)
+			{
+				channel = reg.channel;
+				if (reg.component == null)
+					reg.component = Comp;
+				return true;
+			}
+			reg = new ChannelRegister();
+			reg.component = Comp;
+			ChannelDictionary.Add(Comp.Entity.EntityId, reg);
+			channel = 0;
+			return false;
+		}
+
 
 		internal void AddBuffer(VideoBuffer videoBuffer)
 		{

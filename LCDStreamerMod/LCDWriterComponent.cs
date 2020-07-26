@@ -18,16 +18,30 @@ using VRage.ModAPI;
 using Sandbox.ModAPI.Interfaces;
 using Sandbox.Game.EntityComponents;
 using LCDText2;
-using SENetworkAPI;
 
 namespace LocalLCD
 {
 	[MyEntityComponentDescriptor(typeof(MyObjectBuilder_TextPanel), true)]
-	public class LocalLCDWriterComponent : MyNetworkGameLogicComponent
+	public class LocalLCDWriterComponent : MyGameLogicComponent
 	{
 		MyObjectBuilder_EntityBase ObjectBuilder;
 		IMyTextPanel TextPanel;
-		NetSync<ulong> CurrentBuffer;
+		ulong m_CurrentBuffer;
+
+		public ulong CurrentBuffer
+		{
+			get
+			{
+				return m_CurrentBuffer;
+			}
+			set
+			{
+				Changed_Channel(m_CurrentBuffer, value);
+				m_CurrentBuffer = value;
+			}
+		}
+
+
 		public VideoPlayerScript Script;
 		long Selected = -1;
 
@@ -50,17 +64,23 @@ namespace LocalLCD
 			
 			ObjectBuilder = objectBuilder;
 			
-
-			if (!(MyAPIGateway.Session.OnlineMode == VRage.Game.MyOnlineModeEnum.OFFLINE) && !NetworkAPI.IsInitialized)
-			{
-				NetworkAPI.Init(LCDWriterCore.COMID, LCDWriterCore.NETWORKNAME);
-			}
 			base.Init(objectBuilder);
-			
-			CurrentBuffer = new NetSync<ulong>(this, TransferType.Both, 1);
-			CurrentBuffer.SyncOnLoad = true;
-			CurrentBuffer.LimitToSyncDistance = true;
-			CurrentBuffer.ValueChanged += Changed_Channel;
+			ulong currentchannel;
+			if(LCDWriterCore.TryRegisterAndGetChannel(this, out currentchannel))
+			{
+				UpdateChannelInternal(currentchannel);
+
+			}
+			else
+			{
+				m_CurrentBuffer = 1;
+			}
+
+			this.NeedsUpdate |= MyEntityUpdateEnum.BEFORE_NEXT_FRAME;
+		}
+
+		public override void UpdateOnceBeforeFrame()
+		{
 
 			if (!controls_created)
 			{
@@ -75,7 +95,25 @@ namespace LocalLCD
 			if (arg1 > 1)
 				LCDWriterCore.instance.Unsubscribe(this, arg1);
 			if(arg2 > 1)
+			{
 				LCDWriterCore.instance.Subscribe(this, arg2);
+				if (Script == null)
+					Script = new VideoPlayerScript(this.Entity as IMyTextPanel);
+			}
+
+			LCDWriterCore.instance.UpdateChannel(this, arg2, MyAPIGateway.Multiplayer?.MyId ?? 0);
+		}
+
+		internal void UpdateChannelInternal(ulong channel)
+		{
+			if (m_CurrentBuffer > 1)
+				LCDWriterCore.instance.Unsubscribe(this, m_CurrentBuffer);
+			if (channel > 1)
+			{
+				LCDWriterCore.instance.Subscribe(this, channel);
+				if (Script == null)
+					Script = new VideoPlayerScript(this.Entity as IMyTextPanel);
+			}
 		}
 
 		internal void PlayAudio(byte[] audioframes, int bytes, VideoBuffer.AudioHeader audioHeader)
@@ -94,6 +132,8 @@ namespace LocalLCD
 			
 		}
 
+
+
 		private void TextPanel_ChannelChanged(IMyTerminalBlock obj)
 		{
 			if(obj == null)
@@ -102,7 +142,7 @@ namespace LocalLCD
 			}
 			if (Selected == -1)
 			{
-				if (CurrentBuffer.Value == 1)
+				if (CurrentBuffer == 1)
 				{
 					Selected = 0;
 					
@@ -118,7 +158,7 @@ namespace LocalLCD
 				{
 					Script.DeletePlayer();
 				}
-				CurrentBuffer.Value = 1;
+				CurrentBuffer = 1;
 				return;
 			}
 			if(Selected < Obj.Count)
@@ -128,8 +168,8 @@ namespace LocalLCD
 				ulong channel;
 				if(SteamIdGetter.TryGetValue(Selected, out channel))
 				{
-					MyAPIGateway.Utilities.ShowMessage("Player", "Selected Channel 2");
-					CurrentBuffer.Value = channel;
+					MyAPIGateway.Utilities.ShowMessage("Player", $"Selected Channel {channel}");
+					CurrentBuffer = channel;
 				}
 
 			}
@@ -166,6 +206,8 @@ namespace LocalLCD
 		private static MyStringId None = MyStringId.GetOrCompute("None");
         public static void CreateTerminalControls()
 		{
+			if (controls_created)
+				return;
 			controls_created = true;
 			if (ComboListBox == null)
 			{
@@ -275,7 +317,7 @@ namespace LocalLCD
 		public override void MarkForClose()
 		{
 			if (Selected > 0)
-				LCDWriterCore.instance.Unsubscribe(this, CurrentBuffer.Value);
+				LCDWriterCore.instance.Unsubscribe(this, CurrentBuffer);
 			
 			if (Script != null)
 				Script.Close();

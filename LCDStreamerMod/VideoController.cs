@@ -83,7 +83,7 @@ namespace LocalLCD
 						
 						foreach (var lcd in subscribers)
 						{
-							//if (MyAPIGateway.Session.OnlineMode != VRage.Game.MyOnlineModeEnum.OFFLINE || videoBuffer.steamid != MyAPIGateway.Multiplayer.MyId)
+							if (MyAPIGateway.Session.OnlineMode != VRage.Game.MyOnlineModeEnum.OFFLINE && videoBuffer.steamid != MyAPIGateway.Multiplayer.MyId)
 								lcd.PlayAudio(audioframes, audiobytes, videoBuffer.audioHeader);
 						}
 					}
