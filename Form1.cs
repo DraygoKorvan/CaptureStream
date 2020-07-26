@@ -53,12 +53,12 @@ namespace CaptureStream
 
 		WaveFormat sourceFormat;
 		long framerate = 1;
-		int playbackframerate = 16;
+		int playbackframerate = 20;
 		long frameremainder = 0;
 		private MMDevice device;
 		private WasapiOut blankplayer;
 		private SilenceProvider silence;
-		private AcmStream resamplePCM;
+		//private AcmStream resamplePCM;
 
 
 		private videoheader header;
@@ -181,7 +181,8 @@ namespace CaptureStream
 			if (e.BytesRecorded == 0)
 				return;
 			var buffer = e.Buffer;
-		
+			if (!recording)
+				return;
 			//ok lets write to a temp file, read it to conver.
 			using (var str = new RawSourceWaveStream(buffer, 0, e.BytesRecorded, audio.WaveFormat))
 			{
@@ -329,7 +330,7 @@ namespace CaptureStream
 
 						using (Graphics cv = Graphics.FromImage(bmpbuffer))
 						{
-							cv.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.NearestNeighbor;
+							//cv.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.Default;
 							cv.DrawImage(bmpreader, 0, 0, recordwidth, recordheight);
 						}
 

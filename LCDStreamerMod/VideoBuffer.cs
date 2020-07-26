@@ -130,13 +130,13 @@ namespace LCDText2
 			LCDWriterCore.instance.AddBuffer(this);
 		}
 
-		internal void AddToAudioBuffer(byte[] obj, int offset, int length)
+		internal void AddToAudioBuffer(byte[] obj,  int length)
 		{
-			
+			int offset = 0;
 			if(!hasaudioheader)
 			{
 				
-				audioHeader = AudioHeader.GetFromBytes(obj, offset);
+				audioHeader = AudioHeader.GetFromBytes(obj, 0);
 				
 				offset += AudioHeader.Length();
 				length -= AudioHeader.Length();
@@ -214,11 +214,12 @@ namespace LCDText2
 			}
 		}
 
-		internal void AddToVideoBuffer(byte[] obj, int offset, int length)
+		internal void AddToVideoBuffer(byte[] obj, int length)
 		{
+			int offset = 0;
 			if (!hasvideoheader)
 			{
-				videoHeader = VideoHeader.GetFromBytes(obj, offset);
+				videoHeader = VideoHeader.GetFromBytes(obj, 0);
 
 				offset += VideoHeader.Length();
 				length -= VideoHeader.Length();
@@ -231,7 +232,7 @@ namespace LCDText2
 			int control = BitConverter.ToInt32(obj, offset);
 			ushort stride = BitConverter.ToUInt16(obj, offset + sizeof(int));
 			ushort height = BitConverter.ToUInt16(obj, offset + sizeof(int) + sizeof(ushort));
-			MyLog.Default.WriteLine($"Packet Header: c {control} s {stride} h {height}");
+			//MyLog.Default.WriteLine($"Packet Header: c {control} s {stride} h {height}");
 			if (control == 1)
 			{
 				closing = true;

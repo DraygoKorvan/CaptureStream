@@ -19,6 +19,7 @@ namespace LocalLCD
 		byte[] videoframes;
 		int videoptr = 0;
 		byte[] audioframes;
+		int framecnt = 0;
 
 		List<LocalLCDWriterComponent> subscribers = new List<LocalLCDWriterComponent>();
 
@@ -69,7 +70,8 @@ namespace LocalLCD
 					audioframes = newaudioframes;
 					videoframes = newvideoframes;
 					videoptr = 0;
-					if(!first)
+					framecnt = 0;
+					if (!first)
 						nextAudioTick += tickspersecond;
 					else
 					{
@@ -95,7 +97,7 @@ namespace LocalLCD
 			{
 				if (videoBuffer.videoHeader.framerate == 0)
 					return;
-				//MyLog.Default.WriteLineAndConsole($"Play Frame {nextVideoFrame} Framerate: {videoBuffer.videoHeader.framerate} Ticks: {tickspersecond} | {tickspersecond / videoBuffer.videoHeader.framerate}");
+				MyLog.Default.WriteLineAndConsole($"Play Frame {nextVideoFrame} Framerate: {videoBuffer.videoHeader.framerate} Ticks: {tickspersecond} | {tickspersecond / videoBuffer.videoHeader.framerate}");
 				nextVideoFrame += tickspersecond / videoBuffer.videoHeader.framerate;
 				//MyLog.Default.WriteLineAndConsole($"VideoController Send-Update Video Second: Subs - {subscribers.Count}");
 				if (videoframes == null || videoptr >= videobytes)
@@ -115,6 +117,9 @@ namespace LocalLCD
 				}
 				var length = stride * height;
 				string s_frame = getString(videoframes, videoptr, stride, height);
+				
+				framecnt++;
+				MyLog.Default.WriteLine("Frame Counter framecnt");
 				//convert to string
 				foreach (var lcd in subscribers)
 				{
