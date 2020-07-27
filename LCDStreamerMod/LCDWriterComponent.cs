@@ -116,11 +116,11 @@ namespace LocalLCD
 			}
 		}
 
-		internal void PlayAudio(byte[] audioframes, int bytes, VideoBuffer.AudioHeader audioHeader)
+		internal void PlayAudio(byte[] audioframes, int bytes, int sampleRate)
 		{
 
 			if(Script != null)
-				Script.PlayAudio(audioframes, bytes, audioHeader);
+				Script.PlayAudio(audioframes, bytes, sampleRate);
 		}
 
 		public override void OnAddedToContainer()

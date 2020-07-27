@@ -142,6 +142,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DebugMonitor.cs" />
     <Compile Include="HudAPIv2.cs" />
     <Compile Include="LCDWriterComponent.cs" />
     <Compile Include="LCDWriterCore.cs" />

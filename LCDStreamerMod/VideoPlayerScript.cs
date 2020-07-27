@@ -34,11 +34,11 @@ namespace LocalLCD
 		IMyCubeGrid fake;
 		Sandbox.ModAPI.IMyTextPanel Parent;
 		private List<IMySlimBlock> blocks = new List<IMySlimBlock>();
-		internal void PlayAudio(byte[] audioframes, int size, AudioHeader header)
+		internal void PlayAudio(byte[] audioframes, int size, int sampleRate)
 		{
 			//MyLog.Default.WriteLine($"VideoPlayerScript PlayAudio {AudioEmitter != null}");
 			if (AudioEmitter != null)
-				AudioEmitter.PlaySound(audioframes, size, header.SampleRate, 1, 200);
+				AudioEmitter.PlaySound(audioframes, size, sampleRate, 1, 200);
 		}
 
 
@@ -50,8 +50,6 @@ namespace LocalLCD
 		{
 			AudioEmitter = new MyEntity3DSoundEmitter((MyEntity)panel);
 			Parent = panel;
-			
-
 		}
 
 		public static VideoPlayerScript Factory(Sandbox.ModAPI.IMyTextPanel Panel)

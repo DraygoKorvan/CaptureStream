@@ -6,7 +6,9 @@ using System.Threading.Tasks;
 
 namespace CaptureStream
 {
-	class VideoRecorderTask
+	interface iSEVideoEncoder
 	{
+		byte[] Encode(byte[] bytesToEncode);
+		byte[] Decode(byte[] encodedBytes);
 	}
 }

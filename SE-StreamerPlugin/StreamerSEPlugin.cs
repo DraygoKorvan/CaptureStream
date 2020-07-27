@@ -23,18 +23,16 @@ namespace SE_StreamerPlugin
 		const string appName = "BitStream";
 		private static Stream Audio;
 		private static Stream Video;
-		audioheader streamaudioheader;
-		videoheader streamvideoheader;
-		bool haveaudioheader = false;
-		bool havevideoheader = false;
+
 		Thread RecorderApplicationthread;
 		Thread CommunicationThreadVideo, CommunicationThreadAudio;
-		object instance;
+
 		Thread mainthread;
+
 		static CaptureStreamForm form;
 		public void Dispose()
 		{
-			
+			CaptureStreamForm.ActiveForm?.Close();
 		}
 
 		public void Init(object gameInstance)
@@ -84,12 +82,12 @@ namespace SE_StreamerPlugin
 				{
 					MyLog.Default.WriteLineAndConsole("Plugin - Registered Events");
 					MyAPIUtilities.Static.RegisterMessageHandler(videostreamcommand, RequestStreams);
-					//MyAPIGateway.Session.OnSessionReady += Session_OnSessionReady;
 					registerevents = true;
 				}
 			}
 			else
 			{
+				MyLog.Default.WriteLineAndConsole("Plugin - Released Events");
 				SendAudio = null;
 				SendVideo = null;
 				Control = null;
@@ -97,9 +95,6 @@ namespace SE_StreamerPlugin
 				registerevents = false;
 			}
 			//MyLog.Default.WriteLineAndConsole("Status: " + CommunicationThread.ThreadState.ToString());
-
-
-
 		}
 		private void ModCommunicationAudio()
 		{
@@ -107,57 +102,43 @@ namespace SE_StreamerPlugin
 			{
 				try
 				{
-
 					if (Audio == null)
 					{
 						Audio = new AnonymousPipeClientStream(PipeDirection.In, CaptureStreamForm.AudioStream.GetClientHandleAsString());
 
-					
+						if (Video != null)
+							CaptureStreamForm.isConnected = true;
 						continue;
 					}
 					if (Audio.CanRead)
 					{
-						if (!haveaudioheader)
+						int headersize = sizeof(int) * 4;
+						int read = 0;
+						do
 						{
-
-							Audio.Read(transferabuffer, 0, audioheader.Length());
-							streamaudioheader = audioheader.getFromBytes(transferabuffer);
-							MyLog.Default.WriteLine("Plugin: ModCommunication - Got Audio Header");
-							MyLog.Default.WriteLine($"{streamaudioheader.SampleRate}");
-							MyLog.Default.WriteLine($"{streamaudioheader.Channels}");
-							MyLog.Default.WriteLine($"{streamaudioheader.BitsPerSample}");
-							MyLog.Default.WriteLine($"{streamaudioheader.AverageBytesPerSecond}");
-							haveaudioheader = true;
-							MyLog.Default.WriteLine("Plugin: ModCommunication - Sending Audio header" + audioheader.Length().ToString());
-							SendAudio?.Invoke(transferabuffer, audioheader.Length());
-
+							read += Audio.Read(transferabuffer, read, headersize - read);
 						}
-						else
+						while (read < headersize);
+						
+						int bytes = BitConverter.ToInt32(transferabuffer, 0);
+						
+						//int samplerate = BitConverter.ToInt32(transferabuffer, sizeof(int));
+						if (bytes + headersize > transferabuffer.Length)
 						{
-							Audio.Read(transferabuffer, 0, sizeof(int));
-							int bytes = BitConverter.ToInt32(transferabuffer, 0);
-							if (bytes == 0)
-							{
-								//MyLog.Default.WriteLine("Plugin: ModCommunication - Sending Audio EOS ");
-								SendAudio?.Invoke(transferabuffer, sizeof(int));
-								haveaudioheader = false;//reset
-														//havevideoheader = false;
-
-								continue;
-							}
-							if (bytes + sizeof(int) > transferabuffer.Length)
-							{
-								var oldbuf = transferabuffer;
-								transferabuffer = new byte[bytes + sizeof(int)];//grow automatically. 
-								Buffer.BlockCopy(oldbuf, 0, transferabuffer, 0, 4);//move size header to new array. 
-							}
-
-							Audio.Read(transferabuffer, sizeof(int), bytes);
-							//MyLog.Default.WriteLine("Plugin: ModCommunication - Sending Audio - " + (bytes + sizeof(int)).ToString());
-							SendAudio?.Invoke(transferabuffer, bytes + sizeof(int));
+							var oldbuf = transferabuffer;
+							transferabuffer = new byte[bytes + headersize];//grow automatically. 
+							Buffer.BlockCopy(oldbuf, 0, transferabuffer, 0, headersize);//move size header to new array. 
 						}
-
+						int rest = 0;
+						do
+						{
+							rest += Audio.Read(transferabuffer, rest + headersize, bytes - rest);
+						}
+						while (rest < bytes);
+						SendAudio?.Invoke(transferabuffer, bytes + headersize);
 					}
+
+				
 				
 				}
 				catch (Exception ex)
@@ -181,61 +162,46 @@ namespace SE_StreamerPlugin
 						
 
 						Video = new AnonymousPipeClientStream(PipeDirection.In, CaptureStreamForm.VideoStream.GetClientHandleAsString());
+						if (Audio != null)
+							CaptureStreamForm.isConnected = true;
+
 						continue;
 					}
 					if (Video.CanRead)
 					{
-						if (!havevideoheader)
+						var read = Video.Read(transfervbuffer, 0, sizeof(int) + sizeof(ushort) * 4);
+						while(read < sizeof(int) + sizeof(ushort) * 2)
 						{
-							var read = Video.Read(transfervbuffer, 0, videoheader.Length());
-							havevideoheader = true;
-							streamvideoheader = videoheader.getFromBytes(transfervbuffer);
-							//MyLog.Default.WriteLine("Plugin: ModCommunication - Sending Video header " + (videoheader.Length()).ToString());
-							SendVideo?.Invoke(transfervbuffer, videoheader.Length());
-							
+							read += Video.Read(transfervbuffer, read, sizeof(int) + sizeof(ushort) * 4 - read);
+							if (process.HasExited)
+								break;
 						}
-						else
+						//int control = BitConverter.ToInt32(transfervbuffer, 0);
+
+						ushort stride = BitConverter.ToUInt16(transfervbuffer, sizeof(int));
+						ushort height = BitConverter.ToUInt16(transfervbuffer, sizeof(ushort) + sizeof(int));
+						//ushort width = BitConverter.ToUInt16(transfervbuffer, sizeof(ushort) * 2 + sizeof(int));
+						//ushort framerate = BitConverter.ToUInt16(transfervbuffer, sizeof(ushort) * 3 + sizeof(int));
+						//MyLog.Default.WriteLine($"Video Packet Header: c {control} s {stride} h {height}");
+						int headersize = sizeof(int) + sizeof(ushort) * 4;
+						int bytes = stride * height;
+						if (bytes + headersize > transfervbuffer.Length)
 						{
-							var read = Video.Read(transfervbuffer, 0, sizeof(int) + sizeof(ushort) * 2);
-							while(read < sizeof(int) + sizeof(ushort) * 2)
-							{
-								read += Video.Read(transfervbuffer, read, sizeof(int) + sizeof(ushort) * 2 - read);
-								if (process.HasExited)
-									break;
-							}
-							int control = BitConverter.ToInt32(transfervbuffer, 0);
-
-							ushort stride = BitConverter.ToUInt16(transfervbuffer, sizeof(int));
-							ushort height = BitConverter.ToUInt16(transfervbuffer, sizeof(ushort) + sizeof(int));
-
-							//MyLog.Default.WriteLine($"Video Packet Header: c {control} s {stride} h {height}");
-							if (control == 1)
-							{
-								//MyLog.Default.WriteLine("Plugin: ModCommunication - Sending Video header EOS " + (sizeof(int) + sizeof(ushort) * 2).ToString());
-								SendVideo?.Invoke(transfervbuffer, sizeof(int) + sizeof(ushort) * 2);
-								havevideoheader = false;
-								haveaudioheader = false;
-								continue;
-
-							}
-							int bytes = stride * height;
-							if (bytes + sizeof(int) + sizeof(ushort) * 2 > transfervbuffer.Length)
-							{
-								var oldbuffer = transfervbuffer;
-								transfervbuffer = new byte[bytes + sizeof(int) + sizeof(ushort) * 2];
-								Buffer.BlockCopy(oldbuffer, 0, transfervbuffer, 0, sizeof(int) + sizeof(ushort) * 2);
-							}
-							int rest = 0;
-							do
-							{
-								rest += Video.Read(transfervbuffer, rest + sizeof(int) + sizeof(ushort) * 2, bytes - rest);
-								if (process.HasExited)
-									break;
-							}
-							while (rest < bytes);
-							//MyLog.Default.WriteLine("Plugin: ModCommunication - Sending Video - " + (rest + sizeof(int) + sizeof(ushort) * 2).ToString());
-							SendVideo?.Invoke(transfervbuffer, bytes + sizeof(int) + sizeof(ushort) * 2);
+							var oldbuffer = transfervbuffer;
+							transfervbuffer = new byte[bytes + headersize];
+							Buffer.BlockCopy(oldbuffer, 0, transfervbuffer, 0, headersize);
 						}
+						int rest = 0;
+						do
+						{
+							rest += Video.Read(transfervbuffer, rest + headersize, bytes - rest);
+							if (process.HasExited)
+								break;
+						}
+						while (rest < bytes);
+						MyLog.Default.WriteLine($"Plugin: ModCommunication - Sending Video - {bytes + headersize}");
+						SendVideo?.Invoke(transfervbuffer, bytes + headersize);
+					
 					}
 				}
 				catch (Exception ex)
@@ -267,10 +233,6 @@ namespace SE_StreamerPlugin
 				SendVideo = items.Item2;
 				Control = items.Item3;
 				Control(1);
-				if(haveaudioheader)
-					SendAudio(streamaudioheader.getBytes(), audioheader.Length());
-				if(havevideoheader)
-					SendVideo(streamvideoheader.getBytes(), videoheader.Length());
 			}
 		}
 		

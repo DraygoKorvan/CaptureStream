@@ -47,6 +47,9 @@
 			this.FrameTimeMonitor = new System.Windows.Forms.Label();
 			this.AudioLength = new System.Windows.Forms.Label();
 			this.RecordingText = new System.Windows.Forms.Label();
+			this.FrameRate_Text = new System.Windows.Forms.TextBox();
+			this.label6 = new System.Windows.Forms.Label();
+			this.Frame_Monitor = new System.Windows.Forms.Label();
 			((System.ComponentModel.ISupportInitialize)(this.Preview)).BeginInit();
 			this.SuspendLayout();
 			// 
@@ -210,11 +213,40 @@
 			this.RecordingText.TabIndex = 17;
 			this.RecordingText.Text = "Recording Stopped";
 			// 
+			// FrameRate_Text
+			// 
+			this.FrameRate_Text.Location = new System.Drawing.Point(292, 389);
+			this.FrameRate_Text.Name = "FrameRate_Text";
+			this.FrameRate_Text.Size = new System.Drawing.Size(100, 20);
+			this.FrameRate_Text.TabIndex = 18;
+			this.FrameRate_Text.TextChanged += new System.EventHandler(this.FrameRate_Text_TextChanged);
+			// 
+			// label6
+			// 
+			this.label6.AutoSize = true;
+			this.label6.Location = new System.Drawing.Point(258, 393);
+			this.label6.Name = "label6";
+			this.label6.Size = new System.Drawing.Size(21, 13);
+			this.label6.TabIndex = 19;
+			this.label6.Text = "fps";
+			// 
+			// Frame_Monitor
+			// 
+			this.Frame_Monitor.AutoSize = true;
+			this.Frame_Monitor.Location = new System.Drawing.Point(362, 269);
+			this.Frame_Monitor.Name = "Frame_Monitor";
+			this.Frame_Monitor.Size = new System.Drawing.Size(33, 13);
+			this.Frame_Monitor.TabIndex = 20;
+			this.Frame_Monitor.Text = "frame";
+			// 
 			// CaptureStreamForm
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
 			this.ClientSize = new System.Drawing.Size(800, 450);
+			this.Controls.Add(this.Frame_Monitor);
+			this.Controls.Add(this.label6);
+			this.Controls.Add(this.FrameRate_Text);
 			this.Controls.Add(this.RecordingText);
 			this.Controls.Add(this.AudioLength);
 			this.Controls.Add(this.FrameTimeMonitor);
@@ -262,6 +294,9 @@
 		private System.Windows.Forms.Label FrameTimeMonitor;
 		private System.Windows.Forms.Label AudioLength;
 		private System.Windows.Forms.Label RecordingText;
+		private System.Windows.Forms.TextBox FrameRate_Text;
+		private System.Windows.Forms.Label label6;
+		private System.Windows.Forms.Label Frame_Monitor;
 	}
 }
 

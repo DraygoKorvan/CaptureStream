@@ -54,7 +54,8 @@ namespace LocalLCD
 		}
 		int audiobytes = 0;
 		int videobytes = 0;
-		bool first = false;
+		int sampleRate = 0;
+		bool first = true;
 		internal void SendUpdate(long elapsedTicks)
 		{
 			if(nextAudioTick <= elapsedTicks)
@@ -63,19 +64,23 @@ namespace LocalLCD
 				int newvideobytes;
 				byte[] newaudioframes;
 				byte[] newvideoframes;
-				if (videoBuffer.GetNextSecond(out newaudioframes, out newaudiobytes, out newvideoframes, out newvideobytes))
+				int newsampleRate;
+				if (videoBuffer.GetNextSecond(out newaudioframes, out newaudiobytes, out newvideoframes, out newvideobytes, out newsampleRate))
 				{
 					audiobytes = newaudiobytes;
 					videobytes = newvideobytes;
 					audioframes = newaudioframes;
 					videoframes = newvideoframes;
+					this.sampleRate = newsampleRate;
 					videoptr = 0;
 					framecnt = 0;
-					if (!first)
-						nextAudioTick += tickspersecond;
+					if (!first && nextAudioTick + Stopwatch.Frequency <= elapsedTicks)
+					{
+						nextAudioTick += Stopwatch.Frequency;
+					}
 					else
 					{
-						nextAudioTick = elapsedTicks + tickspersecond;
+						nextAudioTick = elapsedTicks + Stopwatch.Frequency;
 					}
 					nextVideoFrame = elapsedTicks;
 					if (audiobytes != 0)
@@ -86,7 +91,7 @@ namespace LocalLCD
 						foreach (var lcd in subscribers)
 						{
 							if (MyAPIGateway.Session.OnlineMode != VRage.Game.MyOnlineModeEnum.OFFLINE && videoBuffer.steamid != MyAPIGateway.Multiplayer.MyId)
-								lcd.PlayAudio(audioframes, audiobytes, videoBuffer.audioHeader);
+								lcd.PlayAudio(audioframes, audiobytes, sampleRate);
 						}
 					}
 
@@ -95,10 +100,9 @@ namespace LocalLCD
 			}
 			if (nextVideoFrame <= elapsedTicks)
 			{
-				if (videoBuffer.videoHeader.framerate == 0)
-					return;
-				MyLog.Default.WriteLineAndConsole($"Play Frame {nextVideoFrame} Framerate: {videoBuffer.videoHeader.framerate} Ticks: {tickspersecond} | {tickspersecond / videoBuffer.videoHeader.framerate}");
-				nextVideoFrame += tickspersecond / videoBuffer.videoHeader.framerate;
+
+				MyLog.Default.WriteLineAndConsole($"Play Frame {nextVideoFrame}  Elapsed {elapsedTicks} Ticks: {tickspersecond} {videoptr} {videobytes}");
+				
 				//MyLog.Default.WriteLineAndConsole($"VideoController Send-Update Video Second: Subs - {subscribers.Count}");
 				if (videoframes == null || videoptr >= videobytes)
 				{
@@ -108,18 +112,24 @@ namespace LocalLCD
 				int control = BitConverter.ToInt32(videoframes, videoptr);
 				ushort stride = BitConverter.ToUInt16(videoframes, videoptr + sizeof(int));
 				ushort height = BitConverter.ToUInt16(videoframes, videoptr + sizeof(int) + sizeof(ushort));
+				ushort width = BitConverter.ToUInt16(videoframes, videoptr + sizeof(int) + sizeof(ushort) * 2);
+				ushort framerate = BitConverter.ToUInt16(videoframes, videoptr + sizeof(int) + sizeof(ushort) * 3);
+				LCDWriterCore.debugMonitor.VideoByteLength = videoframes.Length;
+				LCDWriterCore.debugMonitor.VideoCharWidth = width;
+				LCDWriterCore.debugMonitor.VideoStride = stride;
+				LCDWriterCore.debugMonitor.VideoHeight = height;
+				LCDWriterCore.debugMonitor.FrameRate = framerate;
+				if (framerate == 0)
+					framerate = 20;
+				nextVideoFrame += (tickspersecond / framerate);
 				//MyLog.Default.WriteLine($"Video Packet Header: c {control} s {stride} h {height}");
-				videoptr += sizeof(int) + sizeof(ushort) * 2;
-				if (control == 1)
-				{
-					return;
+				videoptr += sizeof(int) + sizeof(ushort) * 4;
 
-				}
 				var length = stride * height;
-				string s_frame = getString(videoframes, videoptr, stride, height);
+				string s_frame = getString(videoframes, videoptr, width, stride, height);
 				
 				framecnt++;
-				MyLog.Default.WriteLine("Frame Counter framecnt");
+				MyLog.Default.WriteLine($"Frame Counter {framecnt}");
 				//convert to string
 				foreach (var lcd in subscribers)
 				{
@@ -131,10 +141,13 @@ namespace LocalLCD
 		}
 
 		char[] charbuffer = new char[1];
-		private string getString(byte[] videoframes, int videoptr, int width, int height)
+		private string getString(byte[] videoframes, int videoptr, int width, int stride, int height)
 		{
 			//MyLog.Default.WriteLine($"VideoController getString {videoframes.Length} {videoptr} {width} {height}");
-			int length = (width * height) / 2 + height;
+
+
+
+			int length = (width * height) + height;
 			if(charbuffer.Length < length)
 				charbuffer = new char[length];
 
@@ -142,11 +155,17 @@ namespace LocalLCD
 			int ptr = 0;
 			for (int y = 0; y < height; y++)
 			{
-				for (int x = 0; x < width; x += 2)
+				var ystride = (y * stride);
+				for (int x = 0; x < width * 2; x += 2)
 				{
+
+					//byte r = videoframes[ystride + x];
+					//byte g = videoframes[ystride + x + 1];
+					//byte b = videoframes[ystride + x + 2];
 					//ptr++;
-					charbuffer[ptr++] = (char)BitConverter.ToUInt16(videoframes, videoptr + (((y * width) + x)));
-					
+					//var tmp = (chat)
+					// bytes = tmp.
+					charbuffer[ptr++] = (char)(BitConverter.ToUInt16(videoframes, videoptr + ystride +  x));
 				}
 				//ptr++;
 				charbuffer[ptr++] = '\n';

@@ -16,6 +16,9 @@ using LCDText2;
 using System.Diagnostics;
 using ProtoBuf;
 using VRage.Game.ModAPI;
+using static Draygo.API.HudAPIv2;
+
+
 
 namespace LocalLCD
 {
@@ -37,14 +40,16 @@ namespace LocalLCD
 		}
 
 		Stopwatch time = new Stopwatch();
-
+		public static DebugMonitor debugMonitor = new DebugMonitor();
 
 
 		public override void UpdateAfterSimulation()
 		{
+			debugMonitor.Update();
 			if (!init)
 			{
 				HudAPI = new HudAPIv2(RegisterHudAPI);
+				
 				init = true;
 				offline = MyAPIGateway.Session.OnlineMode == VRage.Game.MyOnlineModeEnum.OFFLINE;
 				if (!offline)
@@ -136,6 +141,7 @@ namespace LocalLCD
 
 		private void RegisterHudAPI()
 		{
+			debugMonitor.Start(HudAPI);
 
 		}
 
@@ -201,22 +207,26 @@ namespace LocalLCD
 		{
 			MyLog.Default.WriteLine("AddBuffer");
 			VideoController Component;
-			if (controllers.TryGetValue(videoBuffer.steamid, out Component))
+			lock (controllers)
 			{
-				Component = new VideoController(videoBuffer);
+				if (controllers.TryGetValue(videoBuffer.steamid, out Component))
+				{
+					Component = new VideoController(videoBuffer);
 
+				}
+				else
+				{
+					Component = new VideoController(videoBuffer);
+					controllers.Add(videoBuffer.steamid, Component);
+					MyLog.Default.WriteLine("AddLineItem Called from AddBuffer");
+					LocalLCDWriterComponent.AddLineItem(MyStringId.GetOrCompute(videoBuffer.steamid.ToString()), videoBuffer.steamid);
+				}
+				if (time.IsRunning)
+				{
+					Component.SetRunTime(time.ElapsedTicks);
+				}
 			}
-			else
-			{
-				Component = new VideoController(videoBuffer);
-				controllers.Add(videoBuffer.steamid, Component);
-				MyLog.Default.WriteLine("AddLineItem Called from AddBuffer");
-				LocalLCDWriterComponent.AddLineItem(MyStringId.GetOrCompute(videoBuffer.steamid.ToString()), videoBuffer.steamid);
-			}
-			if (time.IsRunning)
-			{
-				Component.SetRunTime(time.ElapsedTicks);
-			}
+
 		}
 
 		protected override void UnloadData()
