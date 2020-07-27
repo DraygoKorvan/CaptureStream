@@ -9,6 +9,7 @@ using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
 using System.IO.Pipes;
@@ -36,7 +37,6 @@ namespace CaptureStream
 		bool recording = false;
 
 
-		Pen drawingpen = new Pen(Color.Red);
 		//Rectangle Rectangle = new Rectangle(0, 0, 1920, 1080);
 		//int recordheight = 236;
 		//int recordwidth = 420;
@@ -61,7 +61,7 @@ namespace CaptureStream
 
 		long audiolengthmonitor = 0;
 		private VideoRecorder video = new VideoRecorder();
-		private RecordingParemeters videorecordingsettings = new RecordingParemeters(0, 0, 1920, 1080, 420, 236, 20);
+		private RecordingParameters videorecordingsettings = new RecordingParameters(0, 0, 1920, 1080, 420, 236, 20, InterpolationMode.NearestNeighbor, SmoothingMode.Default);
 
 		int frame = 0;
 		int audioframe = 0;
@@ -71,10 +71,6 @@ namespace CaptureStream
 			InitializeComponent();
 
 			SetDefaultValues();
-			drawingpen.Width = 1;
-
-
-
 
 			Timer = new Stopwatch();
 
@@ -130,7 +126,6 @@ namespace CaptureStream
 		{
 
 			frame++;
-			var ch = Thread.CurrentThread.ManagedThreadId;
 			if (isConnected)
 			{
 				VideoStream.Write(e.payload, 0, e.payload.Length);
@@ -270,6 +265,7 @@ namespace CaptureStream
 			}
 		}
 
+
 		private void SetDefaultValues()
 		{
 			text_posX.Text = videorecordingsettings.PosX.ToString();
@@ -279,6 +275,19 @@ namespace CaptureStream
 			text_SizeX.Text = videorecordingsettings.SizeX.ToString();
 			text_SizeY.Text = videorecordingsettings.SizeY.ToString();
 			FrameRate_Text.Text = videorecordingsettings.FrameRate.ToString();
+			InterpolationMode interpolationMode = videorecordingsettings.interpolationMode;
+			SmoothingMode smoothingMode = videorecordingsettings.smoothingMode;
+			AA_Combobox.DataSource = Enum.GetNames(typeof(SmoothingMode));
+			AA_Combobox.SelectedItem = smoothingMode.ToString();
+			AA_Combobox.SelectedText = smoothingMode.ToString();
+
+
+			Interpolation_Combobox.DataSource = Enum.GetNames(typeof(InterpolationMode));
+			
+	
+			Interpolation_Combobox.SelectedItem = interpolationMode.ToString();
+			Interpolation_Combobox.SelectedText = interpolationMode.ToString();
+
 		}
 
 		private void UpdateBmp()
@@ -290,11 +299,6 @@ namespace CaptureStream
 
 				//RefreshRecordingBitmaps();
 				RefreshPreviewBitmap();
-
-
-
-
-
 			}
 				
 		}
@@ -444,9 +448,61 @@ namespace CaptureStream
 				}
 				var loc = new Rectangle(videorecordingsettings.PosX, videorecordingsettings.PosY, videorecordingsettings.SizeX, videorecordingsettings.SizeY);
 				using (Graphics gsc = Graphics.FromImage(bmppreview))
+				{
+					gsc.SmoothingMode = videorecordingsettings.smoothingMode;
+					gsc.InterpolationMode = videorecordingsettings.interpolationMode;
 					gsc.CopyFromScreen(loc.Location, Point.Empty, loc.Size);
+				}
+					
 				Thread.Sleep(0);
 			}
+		}
+
+
+		private void SmoothingModeChanged(object sender, EventArgs e)
+		{
+			try
+			{
+				SmoothingMode selectedMode = (SmoothingMode)Enum.Parse(typeof(SmoothingMode), AA_Combobox.SelectedValue.ToString());
+				if (selectedMode == SmoothingMode.Invalid)
+				{
+
+					AA_Combobox.SelectedItem = videorecordingsettings.smoothingMode.ToString();
+					AA_Combobox.SelectedText = videorecordingsettings.smoothingMode.ToString();
+					return;
+				}
+				videorecordingsettings.smoothingMode = selectedMode;
+			}
+			catch
+			{
+
+			}
+
+
+			
+		}
+
+		private void InterpolationModeChanged(object sender, EventArgs e)
+		{
+			try
+			{
+				InterpolationMode selectedMode = (InterpolationMode)Enum.Parse(typeof(InterpolationMode), Interpolation_Combobox.SelectedValue.ToString());
+				if (selectedMode == InterpolationMode.Invalid)
+				{
+
+					AA_Combobox.SelectedItem = videorecordingsettings.interpolationMode.ToString();
+					AA_Combobox.SelectedText = videorecordingsettings.interpolationMode.ToString();
+					return;
+				}
+				videorecordingsettings.interpolationMode = selectedMode;
+			}
+			catch
+			{
+
+			}
+
+
+			
 		}
 	}
 }

@@ -60,7 +60,7 @@
     <Compile Include="NullVideoEncoder.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="RecordingParemeters.cs" />
+    <Compile Include="RecordingParameters.cs" />
     <Compile Include="iSEVideoEncoder.cs" />
     <Compile Include="VideoRecorder.cs" />
     <EmbeddedResource Include="Form1.resx">

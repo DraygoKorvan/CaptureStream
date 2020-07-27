@@ -120,7 +120,7 @@ namespace SE_StreamerPlugin
 						}
 						while (read < headersize);
 						
-						int bytes = BitConverter.ToInt32(transferabuffer, 0);
+						int bytes = BitConverter.ToInt32(transferabuffer, sizeof(int));
 						
 						//int samplerate = BitConverter.ToInt32(transferabuffer, sizeof(int));
 						if (bytes + headersize > transferabuffer.Length)

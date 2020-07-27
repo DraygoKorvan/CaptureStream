@@ -50,6 +50,10 @@
 			this.FrameRate_Text = new System.Windows.Forms.TextBox();
 			this.label6 = new System.Windows.Forms.Label();
 			this.Frame_Monitor = new System.Windows.Forms.Label();
+			this.AA_Combobox = new System.Windows.Forms.ComboBox();
+			this.Interpolation_Combobox = new System.Windows.Forms.ComboBox();
+			this.AAText = new System.Windows.Forms.Label();
+			this.IntrText = new System.Windows.Forms.Label();
 			((System.ComponentModel.ISupportInitialize)(this.Preview)).BeginInit();
 			this.SuspendLayout();
 			// 
@@ -166,7 +170,7 @@
 			// text_encoding
 			// 
 			this.text_encoding.AutoSize = true;
-			this.text_encoding.Location = new System.Drawing.Point(538, 301);
+			this.text_encoding.Location = new System.Drawing.Point(409, 255);
 			this.text_encoding.Name = "text_encoding";
 			this.text_encoding.Size = new System.Drawing.Size(52, 13);
 			this.text_encoding.TabIndex = 13;
@@ -174,7 +178,7 @@
 			// 
 			// Preview
 			// 
-			this.Preview.Location = new System.Drawing.Point(362, 23);
+			this.Preview.Location = new System.Drawing.Point(35, 12);
 			this.Preview.Name = "Preview";
 			this.Preview.Size = new System.Drawing.Size(426, 240);
 			this.Preview.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
@@ -189,7 +193,7 @@
 			// FrameTimeMonitor
 			// 
 			this.FrameTimeMonitor.AutoSize = true;
-			this.FrameTimeMonitor.Location = new System.Drawing.Point(754, 270);
+			this.FrameTimeMonitor.Location = new System.Drawing.Point(88, 255);
 			this.FrameTimeMonitor.Name = "FrameTimeMonitor";
 			this.FrameTimeMonitor.Size = new System.Drawing.Size(22, 13);
 			this.FrameTimeMonitor.TabIndex = 15;
@@ -198,7 +202,7 @@
 			// AudioLength
 			// 
 			this.AudioLength.AutoSize = true;
-			this.AudioLength.Location = new System.Drawing.Point(681, 270);
+			this.AudioLength.Location = new System.Drawing.Point(353, 255);
 			this.AudioLength.Name = "AudioLength";
 			this.AudioLength.Size = new System.Drawing.Size(39, 13);
 			this.AudioLength.TabIndex = 16;
@@ -233,17 +237,59 @@
 			// Frame_Monitor
 			// 
 			this.Frame_Monitor.AutoSize = true;
-			this.Frame_Monitor.Location = new System.Drawing.Point(362, 269);
+			this.Frame_Monitor.Location = new System.Drawing.Point(32, 255);
 			this.Frame_Monitor.Name = "Frame_Monitor";
 			this.Frame_Monitor.Size = new System.Drawing.Size(33, 13);
 			this.Frame_Monitor.TabIndex = 20;
 			this.Frame_Monitor.Text = "frame";
 			// 
+			// AA_Combobox
+			// 
+			this.AA_Combobox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+			this.AA_Combobox.FormattingEnabled = true;
+			this.AA_Combobox.Location = new System.Drawing.Point(434, 321);
+			this.AA_Combobox.Name = "AA_Combobox";
+			this.AA_Combobox.Size = new System.Drawing.Size(121, 21);
+			this.AA_Combobox.TabIndex = 21;
+			this.AA_Combobox.SelectedIndexChanged += new System.EventHandler(this.SmoothingModeChanged);
+			// 
+			// Interpolation_Combobox
+			// 
+			this.Interpolation_Combobox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+			this.Interpolation_Combobox.FormattingEnabled = true;
+			this.Interpolation_Combobox.Location = new System.Drawing.Point(434, 372);
+			this.Interpolation_Combobox.Name = "Interpolation_Combobox";
+			this.Interpolation_Combobox.Size = new System.Drawing.Size(121, 21);
+			this.Interpolation_Combobox.TabIndex = 22;
+			this.Interpolation_Combobox.SelectedIndexChanged += new System.EventHandler(this.InterpolationModeChanged);
+			// 
+			// AAText
+			// 
+			this.AAText.AutoSize = true;
+			this.AAText.Location = new System.Drawing.Point(431, 301);
+			this.AAText.Name = "AAText";
+			this.AAText.Size = new System.Drawing.Size(87, 13);
+			this.AAText.TabIndex = 23;
+			this.AAText.Text = "Smoothing Mode";
+			// 
+			// IntrText
+			// 
+			this.IntrText.AutoSize = true;
+			this.IntrText.Location = new System.Drawing.Point(431, 355);
+			this.IntrText.Name = "IntrText";
+			this.IntrText.Size = new System.Drawing.Size(95, 13);
+			this.IntrText.TabIndex = 24;
+			this.IntrText.Text = "Interpolation Mode";
+			// 
 			// CaptureStreamForm
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-			this.ClientSize = new System.Drawing.Size(800, 450);
+			this.ClientSize = new System.Drawing.Size(558, 450);
+			this.Controls.Add(this.IntrText);
+			this.Controls.Add(this.AAText);
+			this.Controls.Add(this.Interpolation_Combobox);
+			this.Controls.Add(this.AA_Combobox);
 			this.Controls.Add(this.Frame_Monitor);
 			this.Controls.Add(this.label6);
 			this.Controls.Add(this.FrameRate_Text);
@@ -297,6 +343,10 @@
 		private System.Windows.Forms.TextBox FrameRate_Text;
 		private System.Windows.Forms.Label label6;
 		private System.Windows.Forms.Label Frame_Monitor;
+		private System.Windows.Forms.ComboBox AA_Combobox;
+		private System.Windows.Forms.ComboBox Interpolation_Combobox;
+		private System.Windows.Forms.Label AAText;
+		private System.Windows.Forms.Label IntrText;
 	}
 }
 

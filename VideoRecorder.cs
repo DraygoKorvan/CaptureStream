@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -41,11 +42,10 @@ namespace CaptureStream
 		int maxframes = 20;
 		Dispatcher dispatcher;
 		long nextFrame, nextFrameSecond;
-		RecordingParemeters RecordingParemeters;
+		RecordingParameters RecordingParemeters;
 
 		private void RaiseDataAvailable(byte[] framedata)
 		{
-			var ch = Thread.CurrentThread.ManagedThreadId;
 			var args = new VideoEventArgs(framedata);
 			Data_Available?.Invoke(this, args);
 		}
@@ -55,7 +55,7 @@ namespace CaptureStream
 			Recording_Stopped?.Invoke(this, new VideoStoppedArgs());
 		}
 
-		public void Start(RecordingParemeters control, Dispatcher dispatcher)
+		public void Start(RecordingParameters control, Dispatcher dispatcher)
 		{
 			this.dispatcher = dispatcher;
 			this.RecordingParemeters = control;
@@ -247,13 +247,15 @@ namespace CaptureStream
 
 			private bool running;
 			private bool isKeyframe;
+			InterpolationMode iMode = InterpolationMode.Default;
+			SmoothingMode sMode = SmoothingMode.Default;
 
 			public FrameWork()
 			{
 				encoder = new NullVideoEncoder();
 			}
 
-			internal void Prepare(RecordingParemeters recordingParemeters, bool isKeyFrame)
+			internal void Prepare(RecordingParameters recordingParemeters, bool isKeyFrame)
 			{
 				PosX = recordingParemeters.PosX;
 				PosY = recordingParemeters.PosY;
@@ -265,6 +267,8 @@ namespace CaptureStream
 				stopped = false;
 				framerate = recordingParemeters.FrameRate;
 				this.isKeyframe = isKeyFrame;
+				iMode = recordingParemeters.interpolationMode;
+				sMode = recordingParemeters.smoothingMode;
 			}
 			public void GetScreenshot()
 			{
@@ -287,8 +291,8 @@ namespace CaptureStream
 
 				using (Graphics cv = Graphics.FromImage(destination))
 				{
-					cv.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-					cv.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.NearestNeighbor;
+					cv.SmoothingMode = sMode;
+					cv.InterpolationMode = iMode;
 					cv.DrawImage(source, 0, 0, ResX, ResY);
 				}
 

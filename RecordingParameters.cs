@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing.Drawing2D;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace CaptureStream
 {
-	public class RecordingParemeters
+	public class RecordingParameters
 	{
 		public int PosX;
 		public int PosY;
@@ -17,9 +18,10 @@ namespace CaptureStream
 		public int FrameRate;
 		public bool running;
 		public long RecordingMs;
+		public InterpolationMode interpolationMode = InterpolationMode.Default;
+		public SmoothingMode smoothingMode = SmoothingMode.Default;
 
-
-		public RecordingParemeters(int posX, int posY, int sizeX, int sizeY, int resX, int resY, int framerate)
+		public RecordingParameters(int posX, int posY, int sizeX, int sizeY, int resX, int resY, int framerate, InterpolationMode iMode, SmoothingMode sMode)
 		{
 			this.PosX = posX;
 			this.PosY = posY;
@@ -28,6 +30,9 @@ namespace CaptureStream
 			this.ResX = resX;
 			this.ResY = resY;
 			FrameRate = framerate;
+			interpolationMode = iMode;
+			smoothingMode = sMode;
+
 		}
 	}
 }
