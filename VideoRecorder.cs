@@ -276,7 +276,7 @@ namespace CaptureStream
 				{
 					reallocate = false;
 					source = new Bitmap(SizeX, SizeY, PixelFormat.Format24bppRgb);
-					destination = new Bitmap(ResX, ResY, PixelFormat.Format24bppRgb);
+					destination = new Bitmap(ResX, ResY, PixelFormat.Format16bppRgb555);
 				}
 				using (Graphics g = Graphics.FromImage(source))
 				{
@@ -293,10 +293,11 @@ namespace CaptureStream
 				{
 					cv.SmoothingMode = sMode;
 					cv.InterpolationMode = iMode;
+					cv.CompositingMode = CompositingMode.SourceCopy;
 					cv.DrawImage(source, 0, 0, ResX, ResY);
 				}
 
-				BitmapData bmpData = destination.LockBits(new Rectangle(0, 0, ResX, ResY), ImageLockMode.ReadOnly, source.PixelFormat);
+				BitmapData bmpData = destination.LockBits(new Rectangle(0, 0, ResX, ResY), ImageLockMode.ReadOnly, destination.PixelFormat);
 
 				IntPtr ptr = bmpData.Scan0;
 				int stride = Math.Abs(bmpData.Stride);

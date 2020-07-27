@@ -20,6 +20,9 @@ namespace CaptureStream
 		public long RecordingMs;
 		public InterpolationMode interpolationMode = InterpolationMode.Default;
 		public SmoothingMode smoothingMode = SmoothingMode.Default;
+		public float audioBalance = 0.5f;
+		public float leftVolume = 1.0f;
+		public float rightVolume = 1.0f;
 
 		public RecordingParameters(int posX, int posY, int sizeX, int sizeY, int resX, int resY, int framerate, InterpolationMode iMode, SmoothingMode sMode)
 		{

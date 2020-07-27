@@ -66,6 +66,12 @@ namespace CaptureStream
 		int frame = 0;
 		int audioframe = 0;
 
+		AudioMeterInformation AudioMonitor;
+
+		public float leftChannelMonitor = 0f;
+		public float rightChannelMonitor = 0f;
+		
+
 		public CaptureStreamForm()
 		{
 			InitializeComponent();
@@ -81,6 +87,11 @@ namespace CaptureStream
 			{
 				device = enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Console);
 			}
+			
+			AudioMonitor = device.AudioMeterInformation;
+
+			
+
 
 			audio = new WasapiLoopbackCapture();
 			sourceFormat = audio.WaveFormat;
@@ -167,9 +178,14 @@ namespace CaptureStream
 			using (var str = new RawSourceWaveStream(buffer, 0, e.BytesRecorded, audio.WaveFormat))
 			{
 				var six = new WaveFloatTo16Provider(str);
-				byte[] newbuffer = new byte[e.BytesRecorded];
-				var bytesread = six.Read(newbuffer, 0, e.BytesRecorded);
-				var output = StereoToMono(newbuffer);
+				byte[] output = new byte[e.BytesRecorded / 2];
+				//var bytesread = six.Read(newbuffer, 0, e.BytesRecorded);
+				var volout = new StereoToMonoProvider16(six);
+				volout.LeftVolume =  (1f - videorecordingsettings.audioBalance) * videorecordingsettings.leftVolume;
+				volout.RightVolume = (videorecordingsettings.audioBalance) * videorecordingsettings.rightVolume;
+				//byte[] output = new byte[bytesread / 2];
+				var bytesread = volout.Read(output, 0, e.BytesRecorded / 2);
+				//var output = StereoToMono(newbuffer);
 				int control = 0;
 				if(audioframe == 0)
 				{
@@ -179,15 +195,15 @@ namespace CaptureStream
 				if(isConnected)
 				{
 					AudioStream.Write(BitConverter.GetBytes(control), 0, sizeof(int));
-					AudioStream.Write(BitConverter.GetBytes(bytesread / 2), 0, sizeof(int));
-					AudioStream.Write(BitConverter.GetBytes(six.WaveFormat.SampleRate), 0, sizeof(int));
-					AudioStream.Write(BitConverter.GetBytes(six.WaveFormat.AverageBytesPerSecond / 2), 0, sizeof(int));
-					AudioStream.Write(output, 0, bytesread / 2);
+					AudioStream.Write(BitConverter.GetBytes(bytesread), 0, sizeof(int));
+					AudioStream.Write(BitConverter.GetBytes(volout.WaveFormat.SampleRate), 0, sizeof(int));
+					AudioStream.Write(BitConverter.GetBytes(volout.WaveFormat.AverageBytesPerSecond), 0, sizeof(int));
+					AudioStream.Write(output, 0, bytesread);
 					AudioStream.Flush();
 					AudioStream.WaitForPipeDrain();
 					
 				}
-				audiolengthmonitor = bytesread / 2;
+				audiolengthmonitor = bytesread;
 			}
 		}
 		private void StartBackgroundWorker()
@@ -207,7 +223,7 @@ namespace CaptureStream
 		{
 			//UpdateStreaming();
 		}
-		private void UpdateImagePreview()
+		private void UpdateMonitors()
 		{
 			Preview.Refresh();
 			Frame_Monitor.Text = string.Format("{0:N0}", frame);
@@ -217,6 +233,25 @@ namespace CaptureStream
 				RecordingText.Text = "Recording";
 			else
 				RecordingText.Text = "Stopped Recording";
+			if(recording)
+			{
+				if(AudioMonitor != null)
+				{
+					if(AudioMonitor.PeakValues.Count == 2)
+					{
+						leftChannelMonitor = AudioMonitor.PeakValues[0] * (1f - videorecordingsettings.audioBalance) * videorecordingsettings.leftVolume;
+						rightChannelMonitor = AudioMonitor.PeakValues[1] * (videorecordingsettings.audioBalance) * videorecordingsettings.rightVolume;
+					}
+				}
+			}
+			else
+			{
+				leftChannelMonitor = 0;
+				rightChannelMonitor = 0f;
+			}
+			leftVolumeMeter.Amplitude = leftChannelMonitor;
+			rightVolumeMeter.Amplitude = rightChannelMonitor;
+
 		}
 		public delegate void RefreshCallback();
 
@@ -400,10 +435,6 @@ namespace CaptureStream
 		}
 		public bool running = true;
 
-
-
-
-
 		public void onClosing(object sender, FormClosingEventArgs e)
 		{
 			running = false;
@@ -440,7 +471,7 @@ namespace CaptureStream
 				}
 				try
 				{
-					Preview.Invoke(new RefreshCallback(this.UpdateImagePreview));
+					Preview.Invoke(new RefreshCallback(this.UpdateMonitors));
 				}
 				catch
 				{ 
@@ -477,9 +508,6 @@ namespace CaptureStream
 			{
 
 			}
-
-
-			
 		}
 
 		private void InterpolationModeChanged(object sender, EventArgs e)
@@ -500,9 +528,39 @@ namespace CaptureStream
 			{
 
 			}
+		}
 
+		private void BalanceChanged(object sender, EventArgs e)
+		{
+			int balvalue = BalanceSlider.Value;
+			float controlvalue = (float)BalanceSlider.Value / 91f;
+			if (BalanceSlider.Value == 45)
+			{
+				controlvalue = 0.5f;
+			}
+			videorecordingsettings.audioBalance = controlvalue;
 
-			
+			var leftbalance = 1f - videorecordingsettings.audioBalance;
+			LeftBalanceText.Text = string.Format("{0:N0}", leftbalance * 100f);
+			RightBalanceText.Text = string.Format("{0:N0}", videorecordingsettings.audioBalance * 100f);
+
+		}
+
+		private void LeftVolumeChanged(object sender, EventArgs e)
+		{
+			videorecordingsettings.leftVolume = (float)(91 - LeftVolumeSlider.Value) / 91f;
+			LeftVolumeText.Text = string.Format("{0:N0}", videorecordingsettings.leftVolume * 100f);
+		}
+
+		private void RightVolumeChanged(object sender, EventArgs e)
+		{
+			videorecordingsettings.rightVolume = (float)(91 - RightVolumeSlider.Value) / 91f;
+			RightVolumeText.Text = string.Format("{0:N0}", videorecordingsettings.rightVolume * 100f);
+		}
+
+		private void LeftVolumeText_Click(object sender, EventArgs e)
+		{
+
 		}
 	}
 }

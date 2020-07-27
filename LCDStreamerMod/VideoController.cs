@@ -165,7 +165,7 @@ namespace LocalLCD
 					//ptr++;
 					//var tmp = (chat)
 					// bytes = tmp.
-					charbuffer[ptr++] = (char)(BitConverter.ToUInt16(videoframes, videoptr + ystride +  x));
+					charbuffer[ptr++] = (char)((uint)0x3000 + BitConverter.ToUInt16(videoframes, videoptr + ystride +  x));
 				}
 				//ptr++;
 				charbuffer[ptr++] = '\n';

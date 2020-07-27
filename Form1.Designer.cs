@@ -54,6 +54,15 @@
 			this.Interpolation_Combobox = new System.Windows.Forms.ComboBox();
 			this.AAText = new System.Windows.Forms.Label();
 			this.IntrText = new System.Windows.Forms.Label();
+			this.RightVolumeSlider = new System.Windows.Forms.VScrollBar();
+			this.BalanceSlider = new System.Windows.Forms.HScrollBar();
+			this.LeftVolumeSlider = new System.Windows.Forms.VScrollBar();
+			this.leftVolumeMeter = new NAudio.Gui.VolumeMeter();
+			this.rightVolumeMeter = new NAudio.Gui.VolumeMeter();
+			this.LeftBalanceText = new System.Windows.Forms.Label();
+			this.RightBalanceText = new System.Windows.Forms.Label();
+			this.LeftVolumeText = new System.Windows.Forms.Label();
+			this.RightVolumeText = new System.Windows.Forms.Label();
 			((System.ComponentModel.ISupportInitialize)(this.Preview)).BeginInit();
 			this.SuspendLayout();
 			// 
@@ -170,7 +179,7 @@
 			// text_encoding
 			// 
 			this.text_encoding.AutoSize = true;
-			this.text_encoding.Location = new System.Drawing.Point(409, 255);
+			this.text_encoding.Location = new System.Drawing.Point(497, 45);
 			this.text_encoding.Name = "text_encoding";
 			this.text_encoding.Size = new System.Drawing.Size(52, 13);
 			this.text_encoding.TabIndex = 13;
@@ -178,7 +187,7 @@
 			// 
 			// Preview
 			// 
-			this.Preview.Location = new System.Drawing.Point(35, 12);
+			this.Preview.Location = new System.Drawing.Point(12, 12);
 			this.Preview.Name = "Preview";
 			this.Preview.Size = new System.Drawing.Size(426, 240);
 			this.Preview.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
@@ -193,7 +202,7 @@
 			// FrameTimeMonitor
 			// 
 			this.FrameTimeMonitor.AutoSize = true;
-			this.FrameTimeMonitor.Location = new System.Drawing.Point(88, 255);
+			this.FrameTimeMonitor.Location = new System.Drawing.Point(51, 255);
 			this.FrameTimeMonitor.Name = "FrameTimeMonitor";
 			this.FrameTimeMonitor.Size = new System.Drawing.Size(22, 13);
 			this.FrameTimeMonitor.TabIndex = 15;
@@ -202,7 +211,7 @@
 			// AudioLength
 			// 
 			this.AudioLength.AutoSize = true;
-			this.AudioLength.Location = new System.Drawing.Point(353, 255);
+			this.AudioLength.Location = new System.Drawing.Point(452, 45);
 			this.AudioLength.Name = "AudioLength";
 			this.AudioLength.Size = new System.Drawing.Size(39, 13);
 			this.AudioLength.TabIndex = 16;
@@ -237,7 +246,7 @@
 			// Frame_Monitor
 			// 
 			this.Frame_Monitor.AutoSize = true;
-			this.Frame_Monitor.Location = new System.Drawing.Point(32, 255);
+			this.Frame_Monitor.Location = new System.Drawing.Point(12, 255);
 			this.Frame_Monitor.Name = "Frame_Monitor";
 			this.Frame_Monitor.Size = new System.Drawing.Size(33, 13);
 			this.Frame_Monitor.TabIndex = 20;
@@ -281,11 +290,105 @@
 			this.IntrText.TabIndex = 24;
 			this.IntrText.Text = "Interpolation Mode";
 			// 
+			// RightVolumeSlider
+			// 
+			this.RightVolumeSlider.Location = new System.Drawing.Point(535, 125);
+			this.RightVolumeSlider.Name = "RightVolumeSlider";
+			this.RightVolumeSlider.Size = new System.Drawing.Size(20, 120);
+			this.RightVolumeSlider.TabIndex = 25;
+			this.RightVolumeSlider.ValueChanged += new System.EventHandler(this.RightVolumeChanged);
+			// 
+			// BalanceSlider
+			// 
+			this.BalanceSlider.Location = new System.Drawing.Point(455, 105);
+			this.BalanceSlider.Name = "BalanceSlider";
+			this.BalanceSlider.Size = new System.Drawing.Size(100, 17);
+			this.BalanceSlider.TabIndex = 26;
+			this.BalanceSlider.Value = 50;
+			this.BalanceSlider.ValueChanged += new System.EventHandler(this.BalanceChanged);
+			// 
+			// LeftVolumeSlider
+			// 
+			this.LeftVolumeSlider.Location = new System.Drawing.Point(455, 125);
+			this.LeftVolumeSlider.Name = "LeftVolumeSlider";
+			this.LeftVolumeSlider.Size = new System.Drawing.Size(20, 120);
+			this.LeftVolumeSlider.TabIndex = 27;
+			this.LeftVolumeSlider.ValueChanged += new System.EventHandler(this.LeftVolumeChanged);
+			// 
+			// leftVolumeMeter
+			// 
+			this.leftVolumeMeter.Amplitude = 0F;
+			this.leftVolumeMeter.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(192)))), ((int)(((byte)(0)))));
+			this.leftVolumeMeter.Location = new System.Drawing.Point(478, 125);
+			this.leftVolumeMeter.MaxDb = 18F;
+			this.leftVolumeMeter.MinDb = -60F;
+			this.leftVolumeMeter.Name = "leftVolumeMeter";
+			this.leftVolumeMeter.Size = new System.Drawing.Size(20, 120);
+			this.leftVolumeMeter.TabIndex = 28;
+			// 
+			// rightVolumeMeter
+			// 
+			this.rightVolumeMeter.Amplitude = 0F;
+			this.rightVolumeMeter.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(192)))), ((int)(((byte)(0)))));
+			this.rightVolumeMeter.Location = new System.Drawing.Point(512, 125);
+			this.rightVolumeMeter.MaxDb = 18F;
+			this.rightVolumeMeter.MinDb = -60F;
+			this.rightVolumeMeter.Name = "rightVolumeMeter";
+			this.rightVolumeMeter.Size = new System.Drawing.Size(20, 120);
+			this.rightVolumeMeter.TabIndex = 29;
+			this.rightVolumeMeter.Text = "volumeMeter2";
+			// 
+			// LeftBalanceText
+			// 
+			this.LeftBalanceText.AutoSize = true;
+			this.LeftBalanceText.Location = new System.Drawing.Point(466, 80);
+			this.LeftBalanceText.Name = "LeftBalanceText";
+			this.LeftBalanceText.Size = new System.Drawing.Size(19, 13);
+			this.LeftBalanceText.TabIndex = 30;
+			this.LeftBalanceText.Text = "50";
+			// 
+			// RightBalanceText
+			// 
+			this.RightBalanceText.AutoSize = true;
+			this.RightBalanceText.Location = new System.Drawing.Point(530, 80);
+			this.RightBalanceText.Name = "RightBalanceText";
+			this.RightBalanceText.Size = new System.Drawing.Size(19, 13);
+			this.RightBalanceText.TabIndex = 31;
+			this.RightBalanceText.Text = "50";
+			// 
+			// LeftVolumeText
+			// 
+			this.LeftVolumeText.AutoSize = true;
+			this.LeftVolumeText.Location = new System.Drawing.Point(450, 255);
+			this.LeftVolumeText.Name = "LeftVolumeText";
+			this.LeftVolumeText.Size = new System.Drawing.Size(25, 13);
+			this.LeftVolumeText.TabIndex = 32;
+			this.LeftVolumeText.Text = "100";
+			this.LeftVolumeText.Click += new System.EventHandler(this.LeftVolumeText_Click);
+			// 
+			// RightVolumeText
+			// 
+			this.RightVolumeText.AutoSize = true;
+			this.RightVolumeText.Location = new System.Drawing.Point(532, 255);
+			this.RightVolumeText.Name = "RightVolumeText";
+			this.RightVolumeText.Size = new System.Drawing.Size(25, 13);
+			this.RightVolumeText.TabIndex = 33;
+			this.RightVolumeText.Text = "100";
+			// 
 			// CaptureStreamForm
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
 			this.ClientSize = new System.Drawing.Size(558, 450);
+			this.Controls.Add(this.RightVolumeText);
+			this.Controls.Add(this.LeftVolumeText);
+			this.Controls.Add(this.RightBalanceText);
+			this.Controls.Add(this.LeftBalanceText);
+			this.Controls.Add(this.rightVolumeMeter);
+			this.Controls.Add(this.leftVolumeMeter);
+			this.Controls.Add(this.LeftVolumeSlider);
+			this.Controls.Add(this.BalanceSlider);
+			this.Controls.Add(this.RightVolumeSlider);
 			this.Controls.Add(this.IntrText);
 			this.Controls.Add(this.AAText);
 			this.Controls.Add(this.Interpolation_Combobox);
@@ -347,6 +450,15 @@
 		private System.Windows.Forms.ComboBox Interpolation_Combobox;
 		private System.Windows.Forms.Label AAText;
 		private System.Windows.Forms.Label IntrText;
+		private System.Windows.Forms.VScrollBar RightVolumeSlider;
+		private System.Windows.Forms.VScrollBar LeftVolumeSlider;
+		private NAudio.Gui.VolumeMeter leftVolumeMeter;
+		private NAudio.Gui.VolumeMeter rightVolumeMeter;
+		private System.Windows.Forms.HScrollBar BalanceSlider;
+		private System.Windows.Forms.Label LeftBalanceText;
+		private System.Windows.Forms.Label RightBalanceText;
+		private System.Windows.Forms.Label LeftVolumeText;
+		private System.Windows.Forms.Label RightVolumeText;
 	}
 }
 

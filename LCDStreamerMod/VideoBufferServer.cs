@@ -145,7 +145,7 @@ namespace LCDText2
 			//MyAPIGateway.Utilities.ShowMessage("GotPacket", length.ToString());
 			LCDWriterCore.debugMonitor.RecieveVideoStream = length;
 
-			length = EncodeImageToChar(video, length);
+			//length = EncodeImageToChar(video, length);
 
 			if (isServer)
 			{
