@@ -15,7 +15,10 @@ namespace CaptureStream
 			return encodedBytes;
 		}
 
-
+		public byte[] Encode(byte[] bytesToEncode, int stride, int width, int height)
+		{
+			return bytesToEncode;
+		}
 
 		public byte[] Encode(byte[] bytesToEncode, byte[] myPrevUnCompressedFrame, int stride, int width, int height)
 		{

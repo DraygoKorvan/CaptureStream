@@ -429,10 +429,6 @@ namespace CaptureStream
 			}
 		}
 
-		private void pictureBox1_Click(object sender, EventArgs e)
-		{
-
-		}
 		public bool running = true;
 
 		public void onClosing(object sender, FormClosingEventArgs e)

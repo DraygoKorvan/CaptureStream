@@ -194,7 +194,6 @@
 			this.Preview.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
 			this.Preview.TabIndex = 14;
 			this.Preview.TabStop = false;
-			this.Preview.Click += new System.EventHandler(this.pictureBox1_Click);
 			// 
 			// ImageUpdater
 			// 
