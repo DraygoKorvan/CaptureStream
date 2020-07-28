@@ -562,5 +562,17 @@ namespace CaptureStream
 		{
 
 		}
+
+		private void EnableDither(object sender, EventArgs e)
+		{
+			if(DitherOnBox.Checked)
+			{
+				videorecordingsettings.pixelFormat = PixelFormat.Format16bppRgb555;
+			}
+			else
+			{
+				videorecordingsettings.pixelFormat = PixelFormat.Format24bppRgb;
+			}
+		}
 	}
 }

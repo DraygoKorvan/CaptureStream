@@ -160,7 +160,7 @@ namespace CaptureStream
 			private Bitmap source;
 			private Bitmap destination;
 
-			private iSEVideoEncoder encoder;
+			private iSEVideoEncoder encoder = new NullVideoEncoder();
 
 			public int PosX 
 			{ 
@@ -241,6 +241,17 @@ namespace CaptureStream
 				}
 			}
 
+			public PixelFormat Format 
+			{ 
+				get => format;
+				set
+				{
+					format = value;
+					reallocate = true;
+				}
+				
+			}
+
 			private int framerate;
 
 			public long framems;
@@ -249,6 +260,7 @@ namespace CaptureStream
 			private bool isKeyframe;
 			InterpolationMode iMode = InterpolationMode.Default;
 			SmoothingMode sMode = SmoothingMode.Default;
+			PixelFormat format = PixelFormat.Format24bppRgb;
 
 			public FrameWork()
 			{
@@ -269,6 +281,7 @@ namespace CaptureStream
 				this.isKeyframe = isKeyFrame;
 				iMode = recordingParemeters.interpolationMode;
 				sMode = recordingParemeters.smoothingMode;
+				Format = recordingParemeters.pixelFormat;
 			}
 			public void GetScreenshot()
 			{
@@ -276,7 +289,7 @@ namespace CaptureStream
 				{
 					reallocate = false;
 					source = new Bitmap(SizeX, SizeY, PixelFormat.Format24bppRgb);
-					destination = new Bitmap(ResX, ResY, PixelFormat.Format16bppRgb555);
+					destination = new Bitmap(ResX, ResY, Format);
 				}
 				using (Graphics g = Graphics.FromImage(source))
 				{
@@ -302,32 +315,83 @@ namespace CaptureStream
 				IntPtr ptr = bmpData.Scan0;
 				int stride = Math.Abs(bmpData.Stride);
 				int imageln = stride * bmpData.Height;
-				outbytes = imageln +  sizeof(int) + sizeof(ushort) * 4;
-				result = new byte[outbytes];
-				var imgbuffer = new byte[imageln];
-				//if (outbytes != result.Length)
-				//{
 
-				//}
-				//frameout = new byte[bytes];
+				var imgbuffer = new byte[imageln];
+
+				Marshal.Copy(ptr, imgbuffer, 0, imageln);
+				if (format == PixelFormat.Format24bppRgb)
+				{
+					imageln= ConvertTo16bpp(imgbuffer, stride, bmpData.Width, bmpData.Height, out int newstride);
+					stride = newstride;
+				}
+
 				int control = 0;
 				if (isKeyframe)
 					control = 1;
+
+				//encode here. 
+
+				outbytes = imageln + sizeof(int) + sizeof(ushort) * 4;
+				result = new byte[outbytes];
 				Buffer.BlockCopy(BitConverter.GetBytes(control), 0, result, 0, sizeof(int));
 				
 				Buffer.BlockCopy(BitConverter.GetBytes((ushort)stride),0, result, sizeof(int), sizeof(ushort));
 				Buffer.BlockCopy(BitConverter.GetBytes((ushort)bmpData.Height), 0, result, sizeof(int) + sizeof(ushort), sizeof(ushort));
 				Buffer.BlockCopy(BitConverter.GetBytes((ushort)bmpData.Width), 0, result, sizeof(int) + sizeof(ushort) * 2, sizeof(ushort));
 				Buffer.BlockCopy(BitConverter.GetBytes((ushort)framerate), 0, result, sizeof(int) + sizeof(ushort) * 3, sizeof(ushort));
-				Marshal.Copy(ptr, imgbuffer, 0, imageln);
+				Buffer.BlockCopy(imgbuffer, 0, result, sizeof(int) + sizeof(ushort) * 4, imageln);
 				//imgbuffer = encoder.Encode(imgbuffer);
-				imgbuffer.CopyTo(result, sizeof(int) + sizeof(ushort) * 4);
+
 
 				destination.UnlockBits(bmpData);
 				framems = DateTime.Now.Ticks - framemsstart;
 				framems /= 10000;
 				return this;
 			}
+
+			byte[] encodingBuffer = new byte[0];
+			int ConvertTo16bpp(byte[] encodedFrame, int stride, int width, int height, out int newstride)
+			{
+				newstride = stride;
+				if (encodedFrame.Length < sizeof(int) + sizeof(ushort) * 2)
+					return encodedFrame.Length;
+
+
+				newstride = ((stride / 3) * 2);
+				newstride += (newstride % 4);
+
+				int encodedlength = newstride * height;
+
+				if (encodingBuffer.Length < encodedlength)
+				{
+					encodingBuffer = new byte[encodedlength];
+				}
+
+				for (int i = 0; i < height; i++)
+				{
+
+					int adjust = i * stride;
+
+					int encadjust = i * newstride;
+
+					for (int ii = 0, eii = 0; ii + 2 < stride; ii += 3, eii += 2)
+					{
+						byte r = encodedFrame[adjust + ii + 2];
+						byte g = encodedFrame[adjust + ii + 1];
+						byte b = encodedFrame[adjust + ii];
+						BitConverter.GetBytes(ColorToUShort(r, g, b)).CopyTo(encodingBuffer, encadjust + eii);
+					}
+				}
+				Buffer.BlockCopy(encodingBuffer, 0, encodedFrame, 0, encodedlength);
+				return encodedlength;
+			}
+
+
+			ushort ColorToUShort(byte r, byte g, byte b)
+			{
+				return (ushort)(((r >> 3) << 10) + ((g >> 3) << 5) + (b >> 3));
+			}
+
 		}
 
 	}

@@ -63,6 +63,7 @@
 			this.RightBalanceText = new System.Windows.Forms.Label();
 			this.LeftVolumeText = new System.Windows.Forms.Label();
 			this.RightVolumeText = new System.Windows.Forms.Label();
+			this.DitherOnBox = new System.Windows.Forms.CheckBox();
 			((System.ComponentModel.ISupportInitialize)(this.Preview)).BeginInit();
 			this.SuspendLayout();
 			// 
@@ -121,7 +122,7 @@
 			// label3
 			// 
 			this.label3.AutoSize = true;
-			this.label3.Location = new System.Drawing.Point(74, 303);
+			this.label3.Location = new System.Drawing.Point(33, 305);
 			this.label3.Name = "label3";
 			this.label3.Size = new System.Drawing.Size(44, 13);
 			this.label3.TabIndex = 8;
@@ -130,7 +131,7 @@
 			// label4
 			// 
 			this.label4.AutoSize = true;
-			this.label4.Location = new System.Drawing.Point(205, 302);
+			this.label4.Location = new System.Drawing.Point(158, 304);
 			this.label4.Name = "label4";
 			this.label4.Size = new System.Drawing.Size(27, 13);
 			this.label4.TabIndex = 9;
@@ -155,7 +156,7 @@
 			// label5
 			// 
 			this.label5.AutoSize = true;
-			this.label5.Location = new System.Drawing.Point(328, 301);
+			this.label5.Location = new System.Drawing.Point(291, 304);
 			this.label5.Name = "label5";
 			this.label5.Size = new System.Drawing.Size(57, 13);
 			this.label5.TabIndex = 12;
@@ -202,6 +203,7 @@
 			// FrameTimeMonitor
 			// 
 			this.FrameTimeMonitor.AutoSize = true;
+			this.FrameTimeMonitor.ForeColor = System.Drawing.SystemColors.ControlText;
 			this.FrameTimeMonitor.Location = new System.Drawing.Point(51, 255);
 			this.FrameTimeMonitor.Name = "FrameTimeMonitor";
 			this.FrameTimeMonitor.Size = new System.Drawing.Size(22, 13);
@@ -246,6 +248,7 @@
 			// Frame_Monitor
 			// 
 			this.Frame_Monitor.AutoSize = true;
+			this.Frame_Monitor.ForeColor = System.Drawing.SystemColors.ControlText;
 			this.Frame_Monitor.Location = new System.Drawing.Point(12, 255);
 			this.Frame_Monitor.Name = "Frame_Monitor";
 			this.Frame_Monitor.Size = new System.Drawing.Size(33, 13);
@@ -266,7 +269,7 @@
 			// 
 			this.Interpolation_Combobox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
 			this.Interpolation_Combobox.FormattingEnabled = true;
-			this.Interpolation_Combobox.Location = new System.Drawing.Point(434, 372);
+			this.Interpolation_Combobox.Location = new System.Drawing.Point(434, 362);
 			this.Interpolation_Combobox.Name = "Interpolation_Combobox";
 			this.Interpolation_Combobox.Size = new System.Drawing.Size(121, 21);
 			this.Interpolation_Combobox.TabIndex = 22;
@@ -275,7 +278,7 @@
 			// AAText
 			// 
 			this.AAText.AutoSize = true;
-			this.AAText.Location = new System.Drawing.Point(431, 301);
+			this.AAText.Location = new System.Drawing.Point(431, 305);
 			this.AAText.Name = "AAText";
 			this.AAText.Size = new System.Drawing.Size(87, 13);
 			this.AAText.TabIndex = 23;
@@ -284,7 +287,7 @@
 			// IntrText
 			// 
 			this.IntrText.AutoSize = true;
-			this.IntrText.Location = new System.Drawing.Point(431, 355);
+			this.IntrText.Location = new System.Drawing.Point(431, 346);
 			this.IntrText.Name = "IntrText";
 			this.IntrText.Size = new System.Drawing.Size(95, 13);
 			this.IntrText.TabIndex = 24;
@@ -375,11 +378,25 @@
 			this.RightVolumeText.TabIndex = 33;
 			this.RightVolumeText.Text = "100";
 			// 
+			// DitherOnBox
+			// 
+			this.DitherOnBox.AutoSize = true;
+			this.DitherOnBox.Location = new System.Drawing.Point(434, 393);
+			this.DitherOnBox.Name = "DitherOnBox";
+			this.DitherOnBox.Size = new System.Drawing.Size(54, 17);
+			this.DitherOnBox.TabIndex = 34;
+			this.DitherOnBox.Text = "Dither";
+			this.DitherOnBox.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+			this.DitherOnBox.UseVisualStyleBackColor = true;
+			this.DitherOnBox.CheckedChanged += new System.EventHandler(this.EnableDither);
+			// 
 			// CaptureStreamForm
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+			this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
 			this.ClientSize = new System.Drawing.Size(558, 450);
+			this.Controls.Add(this.DitherOnBox);
 			this.Controls.Add(this.RightVolumeText);
 			this.Controls.Add(this.LeftVolumeText);
 			this.Controls.Add(this.RightBalanceText);
@@ -459,6 +476,7 @@
 		private System.Windows.Forms.Label RightBalanceText;
 		private System.Windows.Forms.Label LeftVolumeText;
 		private System.Windows.Forms.Label RightVolumeText;
+		private System.Windows.Forms.CheckBox DitherOnBox;
 	}
 }
 

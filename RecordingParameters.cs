@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -20,6 +21,7 @@ namespace CaptureStream
 		public long RecordingMs;
 		public InterpolationMode interpolationMode = InterpolationMode.Default;
 		public SmoothingMode smoothingMode = SmoothingMode.Default;
+		public PixelFormat pixelFormat = PixelFormat.Format24bppRgb;
 		public float audioBalance = 0.5f;
 		public float leftVolume = 1.0f;
 		public float rightVolume = 1.0f;

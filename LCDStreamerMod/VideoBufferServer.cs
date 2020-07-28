@@ -192,65 +192,11 @@ namespace LCDText2
 			}
 
 		}
-		byte[] encodingbuffer = new byte[1]; // will grow to match. 
+		//byte[] encodingbuffer = new byte[1]; // will grow to match. 
 		/// <summary>
 		/// Begin frame encoding code below
 		/// </summary>
-		int EncodeImageToChar(byte[] encodedFrame, int length)
-		{
-			if (encodedFrame.Length < sizeof(int) + sizeof(ushort) * 2)
-				return encodedFrame.Length;
-			int control = BitConverter.ToInt32(encodedFrame, 0 );
-			ushort stride = BitConverter.ToUInt16(encodedFrame,   sizeof(int));
-			ushort height = BitConverter.ToUInt16(encodedFrame, sizeof(int) + sizeof(ushort));
-			ushort width = BitConverter.ToUInt16(encodedFrame, sizeof(int) + sizeof(ushort) * 2);
-			ushort framerate = BitConverter.ToUInt16(encodedFrame, sizeof(int) + sizeof(ushort) * 3);
-			//MyLog.Default.WriteLine($"Video Packet Header: c {control} s {stride} h {height}");
-			var offset = sizeof(int) + sizeof(ushort) * 4;
-			ushort newstride = (ushort)((stride / 3) *2);
-			newstride += (ushort)(newstride % 2);
-			//840
-			//MyLog.Default.WriteLine("Mod - EncodeImageToChar newstride " + newstride.ToString());
-			int encodedlength = newstride * height + offset;
-			//MyLog.Default.WriteLine("Mod - EncodeImageToChar encodeln " + encodedlength.ToString());
-			//199928
-			if (encodingbuffer.Length < encodedlength)
-			{
-				encodingbuffer = new byte[encodedlength];
-			}
-			//len 299888
-			//encodeln 199928
-			MyAPIGateway.Parallel.For(0, height - 1, i => {
-				//237
-				int adjust = offset + i * stride;
-				//adj 8 + 237 * 1260
-				//adj = 298628
-				int encadjust = i * newstride;
-			//encadj 237 * 840
-			//encadj 199080
-				for (int ii = 0, eii = 0 ; ii + 2 < stride; ii+= 3, eii += 2)
-				{
-					//ii = 1257
-					//adj + ii 299885
-					byte r = encodedFrame[adjust + ii + 2];
-					byte g = encodedFrame[adjust + ii + 1];
-					byte b = encodedFrame[adjust + ii];
-					BitConverter.GetBytes(ColorToChar(r, g, b)).CopyTo(encodingbuffer, encadjust + eii);
-				}
-			});
-			Buffer.BlockCopy(BitConverter.GetBytes(newstride), 0, encodedFrame, sizeof(int), sizeof(ushort));
-			Buffer.BlockCopy(encodingbuffer, 0, encodedFrame, offset, encodedlength - offset);
-			//control = BitConverter.ToInt32(encodedFrame, 0);
-			//stride = BitConverter.ToUInt16(encodedFrame, sizeof(int));
-			//height = BitConverter.ToUInt16(encodedFrame, sizeof(int) + sizeof(ushort));
-			//width = BitConverter.ToUInt16(encodedFrame, sizeof(int) + sizeof(ushort));
-			//MyLog.Default.WriteLine($"New Video Packet Header: c {control} s {stride} h {height}");
-			return encodedlength;
-		}
-		ushort ColorToChar(byte r, byte g, byte b)
-		{
-			return (ushort)((uint)0x3000 + ((r >> 3) << 10) + ((g >> 3) << 5) + (b >> 3));
-		}
+
 
 
 		int tick = 0;
