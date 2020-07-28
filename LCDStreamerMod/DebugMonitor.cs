@@ -77,7 +77,7 @@ namespace LocalLCD
 
 		public static int updateCounter(int oldvalue, int newvalue)
 		{
-			return (int)MathHelper.Lerp(oldvalue, newvalue, 1d / 60d) + newvalue / 60;
+			return (int)MathHelper.Lerp(oldvalue, newvalue, 1d / 60d);
 		}
 
 	}
