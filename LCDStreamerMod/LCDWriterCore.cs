@@ -34,6 +34,7 @@ namespace LocalLCD
 		public const ushort COMID = 8723;
 		public const string NETWORKNAME = "LCDPlayer";
 		Dictionary<ulong, VideoController> controllers = new Dictionary<ulong, VideoController>();
+		public static bool isLocalMuted = true;
 		public LCDWriterCore()
 		{
 			instance = this;

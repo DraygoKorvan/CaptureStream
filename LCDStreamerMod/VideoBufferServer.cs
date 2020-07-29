@@ -225,13 +225,33 @@ namespace LCDText2
 					tick = 0;
 			}
 		}
-
+		enum ControlFlags : int
+		{
+			Start = 1,
+			AudioEnable = 2,
+			AudioDisable = 3
+		}
 
 
 		private void RecieveControl(int obj)
 		{
-			MyLog.Default.WriteLineAndConsole("Registration Complete");
-			registered = true;
+			switch((ControlFlags)obj)
+			{
+				case ControlFlags.Start:
+					MyLog.Default.WriteLineAndConsole("Registration Complete");
+					registered = true;
+					return;
+				case ControlFlags.AudioDisable:
+					LCDWriterCore.isLocalMuted = true;
+					return;
+				case ControlFlags.AudioEnable:
+					LCDWriterCore.isLocalMuted = false;
+					return;
+				default:
+					return;
+			}
+
+
 		}
 	}
 }

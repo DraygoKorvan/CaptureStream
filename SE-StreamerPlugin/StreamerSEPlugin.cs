@@ -59,14 +59,25 @@ namespace SE_StreamerPlugin
 
 
 
-		public static void StartApplication()
+		public void StartApplication()
 		{
 
 			Application.EnableVisualStyles();
 			//Application.SetCompatibleTextRenderingDefault(false);
 			form = new CaptureStreamForm();
+			form.toggleMuteAudio += Form_toggleEnableAudio;
 			Application.Run(form);
 		}
+
+		bool audioMute = true;
+
+		private void Form_toggleEnableAudio(object sender, EnableAudioEventArgs e)
+		{
+			audioMute = e.audioMuted;
+			Control?.Invoke((int)(e.audioMuted ? ControlFlags.AudioDisable : ControlFlags.AudioEnable));
+
+		}
+
 		bool registerevents = false;
 		byte[] transferabuffer = new byte[4722];
 		byte[] transfervbuffer = new byte[300000];
@@ -169,22 +180,24 @@ namespace SE_StreamerPlugin
 					}
 					if (Video.CanRead)
 					{
-						var read = Video.Read(transfervbuffer, 0, sizeof(int) + sizeof(ushort) * 4);
-						while(read < sizeof(int) + sizeof(ushort) * 2)
+						int headersize = sizeof(int) * 2 + sizeof(ushort) * 4;
+						var read = Video.Read(transfervbuffer, 0, headersize);
+						while(read < headersize)
 						{
-							read += Video.Read(transfervbuffer, read, sizeof(int) + sizeof(ushort) * 4 - read);
+							read += Video.Read(transfervbuffer, read, headersize);
 							if (process.HasExited)
 								break;
 						}
 						//int control = BitConverter.ToInt32(transfervbuffer, 0);
 
-						ushort stride = BitConverter.ToUInt16(transfervbuffer, sizeof(int));
-						ushort height = BitConverter.ToUInt16(transfervbuffer, sizeof(ushort) + sizeof(int));
+						//ushort stride = BitConverter.ToUInt16(transfervbuffer, sizeof(int));
+						//ushort height = BitConverter.ToUInt16(transfervbuffer, sizeof(ushort) + sizeof(int));
 						//ushort width = BitConverter.ToUInt16(transfervbuffer, sizeof(ushort) * 2 + sizeof(int));
 						//ushort framerate = BitConverter.ToUInt16(transfervbuffer, sizeof(ushort) * 3 + sizeof(int));
-						//MyLog.Default.WriteLine($"Video Packet Header: c {control} s {stride} h {height}");
-						int headersize = sizeof(int) + sizeof(ushort) * 4;
-						int bytes = stride * height;
+						int bytes = BitConverter.ToInt32(transfervbuffer, sizeof(ushort) * 4 + sizeof(int));
+						//MyLog.Default.WriteLine($"Video Packet Header: b {bytes}");
+
+						//int bytes = stride * height;
 						if (bytes + headersize > transfervbuffer.Length)
 						{
 							var oldbuffer = transfervbuffer;
@@ -222,6 +235,13 @@ namespace SE_StreamerPlugin
 		private Action<int> Control;
 		private Process process;
 
+		enum ControlFlags : int
+		{
+			Start = 1,
+			AudioEnable = 2,
+			AudioDisable = 3
+		}
+
 		private void RequestStreams(object obj)
 		{
 			MyLog.Default.WriteLine("Plugin: RequestStreams - Got Request");
@@ -233,6 +253,7 @@ namespace SE_StreamerPlugin
 				SendVideo = items.Item2;
 				Control = items.Item3;
 				Control(1);
+				Control((int)(audioMute ? ControlFlags.AudioDisable : ControlFlags.AudioEnable));
 			}
 		}
 		

@@ -35,6 +35,7 @@ namespace LCDText2
 		private int videoStride = 0;
 		private int videoHeight = 0;
 		private int videoFramerate = 0;
+		private int videoFrameSize = 0;
 
 		public bool Paused
 		{
@@ -153,18 +154,20 @@ namespace LCDText2
 		{
 			int offset = 0;
 
-			if (length < sizeof(int) + sizeof(ushort) * 4) 
+			if (length < sizeof(int) * 2 + sizeof(ushort) * 4) 
 				return;
 			int control = BitConverter.ToInt32(obj, offset);
 			ushort stride = BitConverter.ToUInt16(obj, offset + sizeof(int));
 			ushort height = BitConverter.ToUInt16(obj, offset + sizeof(int) + sizeof(ushort));
 			ushort width = BitConverter.ToUInt16(obj, offset + sizeof(int) + sizeof(ushort) * 2);
 			ushort framerate = BitConverter.ToUInt16(obj, offset + sizeof(int) + sizeof(ushort) * 3);
-			MyLog.Default.WriteLine($"Packet Header: c {control} w {width} s {stride} h {height} f {framerate}");
+			int framesize = BitConverter.ToInt32(obj, offset + sizeof(int) + sizeof(ushort) * 4);
+			MyLog.Default.WriteLine($"Packet Header: c {control} w {width} s {stride} h {height} f {framerate} fs {framesize}");
 
 
 			if(stride * height * framerate > videoStride * videoHeight * videoFramerate)
 			{
+				videoFrameSize = framesize;
 				videoStride = stride;
 				videoHeight = height;
 				videoFramerate = framerate;
@@ -172,7 +175,7 @@ namespace LCDText2
 			}
 
 			
-			int writebytes = stride * height + sizeof(int) + sizeof(ushort) * 4;
+			int writebytes = framesize + sizeof(int) * 2 + sizeof(ushort) * 4;
 			
 			MyLog.Default.WriteLine($"Writing to Video buffer? {writebytes} {offset} {length}");
 			if (writebytes <= length)
@@ -196,7 +199,7 @@ namespace LCDText2
 				if (writevideoposition == -1 || vptr[writevideoposition] + writebytes > videostorage[writevideoposition].Length)
 					return;//discard
 				//MyLog.Default.WriteLine($"Read {offset} {writebytes}  {obj.Length}");
-				MyLog.Default.WriteLine($"Write {vptr[writevideoposition]} {writebytes}  {videostorage[writevideoposition].Length}");
+				MyLog.Default.WriteLine($"Write {vptr[writevideoposition]} {writebytes} {videostorage[writevideoposition].Length}");
 				Buffer.BlockCopy(obj, offset, videostorage[writevideoposition], vptr[writevideoposition], writebytes);
 				vptr[writevideoposition] += writebytes;
 

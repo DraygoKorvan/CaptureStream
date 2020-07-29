@@ -31,6 +31,7 @@ namespace LocalLCD
 		public int VideoStride { get; internal set; }
 		public int VideoHeight { get; internal set; }
 		public ushort FrameRate { get; internal set; }
+		public int FrameBytes { get; internal set; }
 
 		public void Start(HudAPIv2 api)
 		{
@@ -42,11 +43,11 @@ namespace LocalLCD
 			var boxdef = HudAPIv2.APIinfo.GetBoxUIDefinition(MyStringId.GetOrCompute("Default"));
 			debugUI = new BoxUIText();
 			debugUI.SetDefinition(boxdef);
-			debugUI.Origin = new Vector2I(-500, 0);
-			debugUI.Width = 500;
+			debugUI.Origin = new Vector2I(-340, 0);
+			debugUI.Width = 340;
 			debugUI.SetTextContent(debugText);
 			debugUI.Visible = true;
-			debugUI.Height = 102 + boxdef.Min.X;
+			debugUI.Height = 9 * 13 + boxdef.Min.X;
 			debugUI.BackgroundColor = Color.White * 0.2f;
 
 
@@ -66,7 +67,8 @@ namespace LocalLCD
 			DebugString.AppendLine($"RVS: {RecieveVideoStream,-10:N0} packet bytes");
 			DebugString.AppendLine($"RAS: {RecieveAudioStream,-10:N0} packet bytes");
 			DebugString.AppendLine($"RNS: {RecieveNetworkStreamAvg * 60,-10:N0} bytes/s");
-			DebugString.AppendLine($"Video: {VideoByteLength,10:N0} frame bytes");
+			DebugString.AppendLine($"Video: {VideoByteLength,10:N0} frame second bytes");
+			DebugString.AppendLine($"       {FrameBytes,10:N0} bytes");
 			DebugString.AppendLine($"       {VideoStride,10:N0} stride");
 			DebugString.AppendLine($"       {VideoCharWidth,10:N0} charwidth");
 			DebugString.AppendLine($"       {VideoHeight,10:N0} height");

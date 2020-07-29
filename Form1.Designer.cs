@@ -64,6 +64,10 @@
 			this.LeftVolumeText = new System.Windows.Forms.Label();
 			this.RightVolumeText = new System.Windows.Forms.Label();
 			this.DitherOnBox = new System.Windows.Forms.CheckBox();
+			this.AudioDeviceChanger = new System.Windows.Forms.ComboBox();
+			this.AudioDevice_Text = new System.Windows.Forms.Label();
+			this.MuteCheckbox = new System.Windows.Forms.CheckBox();
+			this.FrameMonitorText = new System.Windows.Forms.Label();
 			((System.ComponentModel.ISupportInitialize)(this.Preview)).BeginInit();
 			this.SuspendLayout();
 			// 
@@ -180,7 +184,7 @@
 			// text_encoding
 			// 
 			this.text_encoding.AutoSize = true;
-			this.text_encoding.Location = new System.Drawing.Point(497, 45);
+			this.text_encoding.Location = new System.Drawing.Point(386, 255);
 			this.text_encoding.Name = "text_encoding";
 			this.text_encoding.Size = new System.Drawing.Size(52, 13);
 			this.text_encoding.TabIndex = 13;
@@ -212,7 +216,7 @@
 			// AudioLength
 			// 
 			this.AudioLength.AutoSize = true;
-			this.AudioLength.Location = new System.Drawing.Point(452, 45);
+			this.AudioLength.Location = new System.Drawing.Point(341, 255);
 			this.AudioLength.Name = "AudioLength";
 			this.AudioLength.Size = new System.Drawing.Size(39, 13);
 			this.AudioLength.TabIndex = 16;
@@ -389,12 +393,59 @@
 			this.DitherOnBox.UseVisualStyleBackColor = true;
 			this.DitherOnBox.CheckedChanged += new System.EventHandler(this.EnableDither);
 			// 
+			// AudioDeviceChanger
+			// 
+			this.AudioDeviceChanger.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+			this.AudioDeviceChanger.FormattingEnabled = true;
+			this.AudioDeviceChanger.Location = new System.Drawing.Point(444, 45);
+			this.AudioDeviceChanger.Name = "AudioDeviceChanger";
+			this.AudioDeviceChanger.Size = new System.Drawing.Size(121, 21);
+			this.AudioDeviceChanger.TabIndex = 35;
+			this.AudioDeviceChanger.SelectedIndexChanged += new System.EventHandler(this.AudioDeviceCombobox_SelectedIndexChanged);
+			// 
+			// AudioDevice_Text
+			// 
+			this.AudioDevice_Text.AutoSize = true;
+			this.AudioDevice_Text.Location = new System.Drawing.Point(444, 29);
+			this.AudioDevice_Text.Name = "AudioDevice_Text";
+			this.AudioDevice_Text.Size = new System.Drawing.Size(71, 13);
+			this.AudioDevice_Text.TabIndex = 36;
+			this.AudioDevice_Text.Text = "Audio Device";
+			// 
+			// MuteCheckbox
+			// 
+			this.MuteCheckbox.AutoSize = true;
+			this.MuteCheckbox.Checked = true;
+			this.MuteCheckbox.CheckState = System.Windows.Forms.CheckState.Checked;
+			this.MuteCheckbox.Location = new System.Drawing.Point(434, 280);
+			this.MuteCheckbox.Name = "MuteCheckbox";
+			this.MuteCheckbox.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
+			this.MuteCheckbox.Size = new System.Drawing.Size(126, 17);
+			this.MuteCheckbox.TabIndex = 37;
+			this.MuteCheckbox.Text = "Mute Local Playback";
+			this.MuteCheckbox.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+			this.MuteCheckbox.UseVisualStyleBackColor = true;
+			this.MuteCheckbox.CheckedChanged += new System.EventHandler(this.MuteAudio_Changed);
+			// 
+			// FrameMonitorText
+			// 
+			this.FrameMonitorText.AutoSize = true;
+			this.FrameMonitorText.Location = new System.Drawing.Point(89, 255);
+			this.FrameMonitorText.Name = "FrameMonitorText";
+			this.FrameMonitorText.Size = new System.Drawing.Size(41, 13);
+			this.FrameMonitorText.TabIndex = 38;
+			this.FrameMonitorText.Text = "frameln";
+			// 
 			// CaptureStreamForm
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
 			this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
-			this.ClientSize = new System.Drawing.Size(558, 450);
+			this.ClientSize = new System.Drawing.Size(567, 450);
+			this.Controls.Add(this.FrameMonitorText);
+			this.Controls.Add(this.MuteCheckbox);
+			this.Controls.Add(this.AudioDevice_Text);
+			this.Controls.Add(this.AudioDeviceChanger);
 			this.Controls.Add(this.DitherOnBox);
 			this.Controls.Add(this.RightVolumeText);
 			this.Controls.Add(this.LeftVolumeText);
@@ -476,6 +527,10 @@
 		private System.Windows.Forms.Label LeftVolumeText;
 		private System.Windows.Forms.Label RightVolumeText;
 		private System.Windows.Forms.CheckBox DitherOnBox;
+		private System.Windows.Forms.ComboBox AudioDeviceChanger;
+		private System.Windows.Forms.Label AudioDevice_Text;
+		private System.Windows.Forms.CheckBox MuteCheckbox;
+		private System.Windows.Forms.Label FrameMonitorText;
 	}
 }
 

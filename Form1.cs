@@ -61,65 +61,119 @@ namespace CaptureStream
 
 		long audiolengthmonitor = 0;
 		private VideoRecorder video = new VideoRecorder();
+		private VideoEncoder encoder = new VideoEncoder();
 		private RecordingParameters videorecordingsettings = new RecordingParameters(0, 0, 1920, 1080, 420, 236, 20, InterpolationMode.NearestNeighbor, SmoothingMode.Default);
 
 		int frame = 0;
 		int audioframe = 0;
+		int framebytes = 0;
+		bool audiomuted = true;
 
 		AudioMeterInformation AudioMonitor;
 
 		public float leftChannelMonitor = 0f;
 		public float rightChannelMonitor = 0f;
-		
+
+		public static CaptureStreamForm instance;
+		public class EnableAudioEventArgs
+		{
+			public bool audioMuted = false;
+		}
+
+		public delegate void EnableLocalAudioPlaybackHandler(object sender, EnableAudioEventArgs e);
+
+		public event EnableLocalAudioPlaybackHandler toggleMuteAudio;
+
+		public List<MMDevice> playbackDevices = new List<MMDevice>();
 
 		public CaptureStreamForm()
 		{
+			instance = this;
 			InitializeComponent();
+			int selected = 0;
 
-			SetDefaultValues();
-
-			Timer = new Stopwatch();
-
-
-			frameremainder = Stopwatch.Frequency % playbackframerate;
-			framerate = Stopwatch.Frequency / playbackframerate;
 			using (var enumerator = new MMDeviceEnumerator())
 			{
 				device = enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Console);
+
+
+				for (int i = 0; i < WaveOut.DeviceCount; i++)
+				{
+					var adddevice = enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active)[i];
+					if (device.InstanceId == adddevice.InstanceId)
+					{
+						selected = i;
+					}
+					playbackDevices.Add(adddevice);
+
+
+				}
 			}
-			
-			AudioMonitor = device.AudioMeterInformation;
 
-			
+			SetDefaultValues();
+			AudioDeviceChanger.SelectedIndex = selected;
 
+			Timer = new Stopwatch();
 
-			audio = new WasapiLoopbackCapture();
-			sourceFormat = audio.WaveFormat;
-			//resamplePCM = new WaveFloatTo16Provider(new WaveProvider);
+			frameremainder = Stopwatch.Frequency % playbackframerate;
+			framerate = Stopwatch.Frequency / playbackframerate;
+
 			var buffer = new byte[16];
 
-
-			//resamplePCM = new AcmStream(WaveFormat.CreateCustomFormat(WaveFormatEncoding.Pcm, 44100, 1, 176400, 4, 16), format);
-			MediaFoundationApi.Startup();
-			blankplayer = new WasapiOut();
-			silence = new SilenceProvider(sourceFormat);
-			blankplayer.Init(silence);
-
-			text_encoding.Text = sourceFormat.Encoding.ToString();
-
-
-
-			audio.DataAvailable += Audio_DataAvailable;
-			audio.RecordingStopped += Audio_RecordingStopped;
+			initAudioRecorder();
 
 			video.Data_Available += Video_Data_Available;
 			video.Recording_Stopped += Video_Recording_Stopped;
-			//UpdateBmp();
+			encoder.Data_Available += Encoder_Data_Available;
+
 			StartBackgroundWorker();
 			running = true;
-			var dispatcherthread = new Thread(UpdateStreaming);
-			dispatcherthread.IsBackground = true;
+			var dispatcherthread = new Thread(UpdateStreaming)
+			{
+				IsBackground = true
+			};
 			dispatcherthread.Start();
+		}
+
+		private void Encoder_Data_Available(object sender, VideoEventArgs e)
+		{
+
+			frame++;
+			
+			framebytes = e.payload.outbytes;
+			if (isConnected)
+			{
+				
+				VideoStream.Write(e.payload.result, 0, e.payload.outbytes);
+				VideoStream.Flush();
+				VideoStream.WaitForPipeDrain();
+
+				video.ReturnWork(e.payload);
+			}
+
+		}
+
+		private void initAudioRecorder()
+		{
+			if(audio != null)
+			{
+				audio.DataAvailable -= Audio_DataAvailable;
+				audio.RecordingStopped -= Audio_RecordingStopped;
+				audio.Dispose();
+			}
+			if(blankplayer != null)
+			{
+				blankplayer.Dispose();
+			}
+			audio = new WasapiLoopbackCapture(device);
+			sourceFormat = audio.WaveFormat;
+			text_encoding.Text = sourceFormat.Encoding.ToString();
+			blankplayer = new WasapiOut(device, AudioClientShareMode.Shared, false, 0);
+			silence = new SilenceProvider(sourceFormat);
+			blankplayer.Init(silence);
+			audio.DataAvailable += Audio_DataAvailable;
+			audio.RecordingStopped += Audio_RecordingStopped;
+			AudioMonitor = device.AudioMeterInformation;
 		}
 
 
@@ -135,15 +189,7 @@ namespace CaptureStream
 
 		public void Video_Data_Available(object sender, VideoEventArgs e)
 		{
-
-			frame++;
-			if (isConnected)
-			{
-				VideoStream.Write(e.payload, 0, e.payload.Length);
-				VideoStream.Flush();
-				VideoStream.WaitForPipeDrain();
-			}
-
+			encoder.AddJob(e.payload);
 		}
 
 
@@ -201,7 +247,6 @@ namespace CaptureStream
 					AudioStream.Write(output, 0, bytesread);
 					AudioStream.Flush();
 					AudioStream.WaitForPipeDrain();
-					
 				}
 				audiolengthmonitor = bytesread;
 			}
@@ -210,7 +255,6 @@ namespace CaptureStream
 		{
 			if(!backgroundWorker.IsBusy)
 			{
-
 				backgroundWorker.RunWorkerAsync();
 			}
 			if(!ImageUpdater.IsBusy)
@@ -228,6 +272,7 @@ namespace CaptureStream
 			Preview.Refresh();
 			Frame_Monitor.Text = string.Format("{0:N0}", frame);
 			FrameTimeMonitor.Text = string.Format("{0:N0} ms", videorecordingsettings.RecordingMs);
+			FrameMonitorText.Text = string.Format("{0:N0}", framebytes);
 			AudioLength.Text = string.Format("{0:N0}", audiolengthmonitor);
 			if (recording)
 				RecordingText.Text = "Recording";
@@ -262,34 +307,32 @@ namespace CaptureStream
 			
 			while(true)
 			{
-				
 				if (recording)
 				{
-
 					if(!Timer.IsRunning)
 					{
 						Timer.Start();
-						
+
 						blankplayer.Play();
 						audioframe = 0;
 						frame = 0;
+						
 						audio.StartRecording();
-						video.Start(videorecordingsettings, Dispatcher.CurrentDispatcher);
+						video.Start(videorecordingsettings);
+						encoder.Start(videorecordingsettings);
 					}
-
-
-
 				}
 				else
 				{
-
 					if (Timer.IsRunning)
 					{
 						videorecordingsettings.running = false;
 						video.Stop();
+						encoder.Stop();
 						Timer.Stop();
 
 						audio.StopRecording();
+
 						blankplayer.Stop();
 					}
 					if (!running)
@@ -312,17 +355,16 @@ namespace CaptureStream
 			FrameRate_Text.Text = videorecordingsettings.FrameRate.ToString();
 			InterpolationMode interpolationMode = videorecordingsettings.interpolationMode;
 			SmoothingMode smoothingMode = videorecordingsettings.smoothingMode;
+
 			AA_Combobox.DataSource = Enum.GetNames(typeof(SmoothingMode));
 			AA_Combobox.SelectedItem = smoothingMode.ToString();
 			AA_Combobox.SelectedText = smoothingMode.ToString();
 
-
 			Interpolation_Combobox.DataSource = Enum.GetNames(typeof(InterpolationMode));
-			
-	
 			Interpolation_Combobox.SelectedItem = interpolationMode.ToString();
 			Interpolation_Combobox.SelectedText = interpolationMode.ToString();
 
+			AudioDeviceChanger.DataSource = playbackDevices;
 		}
 
 		private void UpdateBmp()
@@ -331,7 +373,6 @@ namespace CaptureStream
 			RefreshPreview = true;
 			if (!recording)
 			{
-
 				//RefreshRecordingBitmaps();
 				RefreshPreviewBitmap();
 			}
@@ -341,7 +382,6 @@ namespace CaptureStream
 		{
 			RefreshPreview = false;
 
-			
 			if (bmppreview != null)
 				bmppreview.Dispose();
 			bmppreview = new Bitmap(videorecordingsettings.SizeX, videorecordingsettings.SizeY, PixelFormat.Format24bppRgb);
@@ -355,6 +395,7 @@ namespace CaptureStream
 			recording = !recording;
 			videorecordingsettings.running = recording;
 
+			AudioDeviceChanger.Enabled = !recording;
 		}
 
 
@@ -366,7 +407,6 @@ namespace CaptureStream
 			{
 				if (newval >= 0)
 					videorecordingsettings.PosX = newval;
-				
 			}
 		}
 
@@ -410,9 +450,7 @@ namespace CaptureStream
 				if (newval > 0)
 				{
 					videorecordingsettings.ResX = newval;
-
 				}
-					
 			}
 		}
 
@@ -425,7 +463,6 @@ namespace CaptureStream
 				{
 					videorecordingsettings.ResY = newval;
 				}
-				
 			}
 		}
 
@@ -435,13 +472,10 @@ namespace CaptureStream
 		{
 			running = false;
 			recording = false;
-
-			MediaFoundationApi.Shutdown();
 		}
 
 		private void FrameRate_Text_TextChanged(object sender, EventArgs e)
 		{
-
 			var tox = ((TextBox)sender);
 			if (int.TryParse(tox.Text, out int newval))
 			{
@@ -452,11 +486,10 @@ namespace CaptureStream
 				if (newval > 0)
 				{
 					videorecordingsettings.FrameRate = newval;
-
 				}
-					
 			}
 		}
+
 		private void UpdateImageDoWork(object sender, DoWorkEventArgs e)
 		{
 			while (running)
@@ -480,11 +513,9 @@ namespace CaptureStream
 					gsc.InterpolationMode = videorecordingsettings.interpolationMode;
 					gsc.CopyFromScreen(loc.Location, Point.Empty, loc.Size);
 				}
-					
 				Thread.Sleep(0);
 			}
 		}
-
 
 		private void SmoothingModeChanged(object sender, EventArgs e)
 		{
@@ -569,6 +600,31 @@ namespace CaptureStream
 			{
 				videorecordingsettings.pixelFormat = PixelFormat.Format24bppRgb;
 			}
+		}
+
+		private void AudioDeviceCombobox_SelectedIndexChanged(object sender, EventArgs e)
+		{
+			var selectedevice = AudioDeviceChanger.SelectedItem as MMDevice;
+			if (recording)
+				AudioDeviceChanger.SelectedItem = device;
+			else
+			{
+				if (selectedevice == null)
+					return;
+				device = selectedevice;
+				initAudioRecorder();
+			}
+		}
+
+		private void MuteAudio_Changed(object sender, EventArgs e)
+		{
+			audiomuted = MuteCheckbox.Checked;
+			RaiseHandleToggleAudio(audiomuted);
+		}
+
+		private void RaiseHandleToggleAudio(bool audioMuted)
+		{
+			toggleMuteAudio?.Invoke(this, new EnableAudioEventArgs() { audioMuted = audioMuted });
 		}
 	}
 }
