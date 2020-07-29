@@ -16,7 +16,7 @@ namespace CaptureStream
         public byte[] Encode(byte[] myFrame, byte[] myPrevUnCompressedFrame, int stride, int width, int height, int imageln, int keyframeln)
         {
             //change in size, so send a new image (keyframe)
-            if ((stride * height * 2) != keyframeln)
+            if ((stride * height) != keyframeln)
             {
                 return Encode(myFrame, stride, width, height, imageln);
             }
@@ -109,7 +109,7 @@ namespace CaptureStream
         //if your making a new instance per frame then does a buffer help?
         public byte[] Decode(byte[] myFrame, byte[] myPrevUnCompressedFrame, int stride, int width, int height)
         {
-            int frameSize = (stride * height * 2);
+            int frameSize = (stride * height );
             //I wasnt compressed so return the frame
             if (frameSize == myFrame.Length)
             {
