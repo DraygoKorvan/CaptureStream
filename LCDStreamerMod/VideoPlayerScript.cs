@@ -22,6 +22,7 @@ using VRage.Game.ModAPI;
 using VRage.ObjectBuilders;
 using VRage;
 using VRage.Utils;
+using IMyTextSurface = Sandbox.ModAPI.IMyTextSurface;
 
 namespace LocalLCD
 {
@@ -33,12 +34,16 @@ namespace LocalLCD
 		bool error = false;
 		IMyCubeGrid fake;
 		Sandbox.ModAPI.IMyTextPanel Parent;
+		//IMyTextSurface surface;
 		private List<IMySlimBlock> blocks = new List<IMySlimBlock>();
 		internal void PlayAudio(byte[] audioframes, int size, int sampleRate)
 		{
 			//MyLog.Default.WriteLine($"VideoPlayerScript PlayAudio {AudioEmitter != null}");
 			if (AudioEmitter != null)
+			{
 				AudioEmitter.PlaySound(audioframes, size, sampleRate, 1, 200);
+			}
+				
 		}
 
 
@@ -134,7 +139,7 @@ namespace LocalLCD
 							surface = issurface;
 							surface.ContentType = ContentType.TEXT_AND_IMAGE;
 							surface.Alignment = TextAlignment.CENTER;
-							surface.FontSize = 0.072f;
+							surface.FontSize = fontsize;
 							surface.Font = "Mono Color";
 							//MyAPIGateway.Utilities.ShowMessage("found screen", surface.ToString());
 						}
@@ -143,8 +148,10 @@ namespace LocalLCD
 							if (block.FatBlock != null)
 							{
 								block.FatBlock.Flags &= ~EntityFlags.Visible;
-
+								block.FatBlock.Render.CastShadows = false;
+								block.FatBlock.Render.RemoveRenderObjects();
 							}
+
 
 						}
 					}
@@ -174,12 +181,20 @@ namespace LocalLCD
 
 
 		}
-		float fontsize = 1f;
-		public void SetFontSize(float size)
+
+		float fontsize = 0.072f;
+
+
+		public void SetFontSize(float width, float height)
 		{
-			if(surface != null)
-				surface.FontSize = size;
-			fontsize = size;
+			if (height <= 1f)
+				height = 1f;
+			if (width <= 1f)
+				width = 1f;
+			fontsize = Math.Min(0.072f * (236 / height), 0.072f * (472 / width));
+			if (surface != null)
+				surface.FontSize = fontsize;
+			
 		}
 		
 

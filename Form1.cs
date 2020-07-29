@@ -22,16 +22,14 @@ namespace CaptureStream
 		[DllImport("User32.dll")]
 		public static extern void ReleaseDC(IntPtr hwnd, IntPtr dc);
 
+		public readonly string SEDEFAULT = Environment.ExpandEnvironmentVariables(@"%appdata%\SpaceEngineers");
 
 		public static AnonymousPipeServerStream VideoStream = new AnonymousPipeServerStream(PipeDirection.Out, HandleInheritability.Inheritable);
 		public static AnonymousPipeServerStream AudioStream = new AnonymousPipeServerStream(PipeDirection.Out, HandleInheritability.Inheritable);
 
+		
+
 		bool recording = false;
-
-
-		//Rectangle Rectangle = new Rectangle(0, 0, 1920, 1080);
-		//int recordheight = 236;
-		//int recordwidth = 420;
 
 		Bitmap bmppreview;
 		Stopwatch Timer;
@@ -45,11 +43,9 @@ namespace CaptureStream
 		long frameremainder = 0;
 		private MMDevice device;
 		private WasapiOut blankplayer;
-		private SilenceProvider silence;
-		//private AcmStream resamplePCM;
+		private ISampleProvider silence;
 
 		public static bool  isConnected = false;
-
 
 		long audiolengthmonitor = 0;
 		private VideoRecorder video = new VideoRecorder();
@@ -62,6 +58,9 @@ namespace CaptureStream
 		bool audiomuted = true;
 
 		AudioMeterInformation AudioMonitor;
+
+		private BinaryWriter binaryVideoWriter;
+		private BinaryWriter binaryAudioWriter;
 
 		public float leftChannelMonitor = 0f;
 		public float rightChannelMonitor = 0f;
@@ -118,6 +117,9 @@ namespace CaptureStream
 			video.Recording_Stopped += Video_Recording_Stopped;
 			encoder.Data_Available += Encoder_Data_Available;
 
+			FileSaverBackground.WorkerReportsProgress = true;
+			FileSaverBackground.WorkerSupportsCancellation = true;
+
 			StartBackgroundWorker();
 			running = true;
 			var dispatcherthread = new Thread(UpdateStreaming)
@@ -160,14 +162,21 @@ namespace CaptureStream
 			audio = new WasapiLoopbackCapture(device);
 			sourceFormat = audio.WaveFormat;
 			text_encoding.Text = sourceFormat.Encoding.ToString();
+			//var client = device.AudioClient.AudioRenderClient;
 			blankplayer = new WasapiOut(device, AudioClientShareMode.Shared, false, 0);
-			silence = new SilenceProvider(sourceFormat);
+			
+			silence = new SilenceProvider(sourceFormat).ToSampleProvider();
+
+			AudioDevice_Text.ForeColor = Color.Black;
+
 			try
             {
 				blankplayer.Init(silence);
 			} 
-			catch (Exception ignored)
-            { }
+			catch 
+            {
+				AudioDevice_Text.ForeColor = Color.Red;
+			}
 			audio.DataAvailable += Audio_DataAvailable;
 			audio.RecordingStopped += Audio_RecordingStopped;
 			AudioMonitor = device.AudioMeterInformation;
@@ -203,11 +212,17 @@ namespace CaptureStream
 		{
 			byte[] output = new byte[input.Length / 2];
 			int outputIndex = 0;
+			float lmult = (1f - videorecordingsettings.audioBalance) * videorecordingsettings.leftVolume;
+			float rmult = (videorecordingsettings.audioBalance) * videorecordingsettings.rightVolume;
 			for (int n = 0; n < input.Length; n += 4)
 			{
 				// copy in the first 16 bit sample
-				output[outputIndex++] = input[n];
-				output[outputIndex++] = input[n + 1];
+				float inputfirst = (float)((float)input[n] * lmult) + ((float)input[n + 2] * rmult);
+				float firstbyte = Math.Max(Math.Min(inputfirst, 0f), 255f);
+				float inputsecond = (float)((float)input[n + 1] * lmult) + ((float)input[n + 3] * rmult);
+				float secondbyte = Math.Max(Math.Min(inputsecond, 0f), 255f);
+				output[outputIndex++] = (byte)firstbyte;
+				output[outputIndex++] = (byte)secondbyte;
 			}
 			return output;
 		}
@@ -221,14 +236,15 @@ namespace CaptureStream
 			using (var str = new RawSourceWaveStream(buffer, 0, e.BytesRecorded, audio.WaveFormat))
 			{
 				var six = new WaveFloatTo16Provider(str);
-				byte[] output = new byte[e.BytesRecorded / 2];
-				//var bytesread = six.Read(newbuffer, 0, e.BytesRecorded);
-				var volout = new StereoToMonoProvider16(six);
-				volout.LeftVolume =  (1f - videorecordingsettings.audioBalance) * videorecordingsettings.leftVolume;
-				volout.RightVolume = (videorecordingsettings.audioBalance) * videorecordingsettings.rightVolume;
+				//byte[] output = new byte[e.BytesRecorded / 2];
+				byte[] newbuffer = new byte[e.BytesRecorded / 2];
+				var bytesread = six.Read(newbuffer, 0, e.BytesRecorded);
+				//var volout = new StereoToMonoProvider16(six);
+				//volout.LeftVolume =  (1f - videorecordingsettings.audioBalance) * videorecordingsettings.leftVolume;
+				//volout.RightVolume = (videorecordingsettings.audioBalance) * videorecordingsettings.rightVolume;
 				//byte[] output = new byte[bytesread / 2];
-				var bytesread = volout.Read(output, 0, e.BytesRecorded / 2);
-				//var output = StereoToMono(newbuffer);
+				//var bytesread = volout.Read(output, 0, e.BytesRecorded / 2);
+				var output = StereoToMono(newbuffer);
 				int control = 0;
 				if(audioframe == 0)
 				{
@@ -239,13 +255,15 @@ namespace CaptureStream
 				{
 					AudioStream.Write(BitConverter.GetBytes(control), 0, sizeof(int));
 					AudioStream.Write(BitConverter.GetBytes(bytesread), 0, sizeof(int));
-					AudioStream.Write(BitConverter.GetBytes(volout.WaveFormat.SampleRate), 0, sizeof(int));
-					AudioStream.Write(BitConverter.GetBytes(volout.WaveFormat.AverageBytesPerSecond), 0, sizeof(int));
-					AudioStream.Write(output, 0, bytesread);
+					AudioStream.Write(BitConverter.GetBytes(six.WaveFormat.SampleRate), 0, sizeof(int));
+					AudioStream.Write(BitConverter.GetBytes(six.WaveFormat.AverageBytesPerSecond / 2), 0, sizeof(int));
+					//AudioStream.Write(BitConverter.GetBytes(volout.WaveFormat.SampleRate), 0, sizeof(int));
+					//AudioStream.Write(BitConverter.GetBytes(volout.WaveFormat.AverageBytesPerSecond), 0, sizeof(int));
+					AudioStream.Write(output, 0, bytesread / 2);
 					AudioStream.Flush();
 					AudioStream.WaitForPipeDrain();
 				}
-				audiolengthmonitor = bytesread;
+				audiolengthmonitor = bytesread / 2;
 			}
 		}
 		private void StartBackgroundWorker()
@@ -317,6 +335,8 @@ namespace CaptureStream
 						audio.StartRecording();
 						video.Start(videorecordingsettings);
 						encoder.Start(videorecordingsettings);
+
+						
 					}
 				}
 				else
@@ -362,6 +382,11 @@ namespace CaptureStream
 			Interpolation_Combobox.SelectedText = interpolationMode.ToString();
 
 			AudioDeviceChanger.DataSource = playbackDevices;
+
+			saveVideoRecording.AddExtension = true;
+			saveVideoRecording.DefaultExt = "sevm";
+			saveVideoRecording.OverwritePrompt = true;
+			saveVideoRecording.InitialDirectory = SEDEFAULT;
 		}
 
 		private void UpdateBmp()
@@ -387,13 +412,7 @@ namespace CaptureStream
 		}
 
 
-		private void RecordOnClick(object sender, MouseEventArgs e)
-		{
-			recording = !recording;
-			videorecordingsettings.running = recording;
 
-			AudioDeviceChanger.Enabled = !recording;
-		}
 
 
 
@@ -622,6 +641,112 @@ namespace CaptureStream
 		private void RaiseHandleToggleAudio(bool audioMuted)
 		{
 			toggleMuteAudio?.Invoke(this, new EnableAudioEventArgs() { audioMuted = audioMuted });
+		}
+
+		private void RecordOnClick(object sender, MouseEventArgs e)
+		{
+			recording = !recording;
+			videorecordingsettings.running = recording;
+
+			AudioDeviceChanger.Enabled = !recording;
+			Save.Enabled = !recording;
+			toFileCheckbox.Enabled = !recording;
+		}
+		
+
+		private void saveFileDialog_FileOk(object sender, CancelEventArgs e)
+		{
+			RecordingButton.Enabled = false;
+			if (e.Cancel)
+				return;
+			var task = new FileSaveJob("videoCache", "audioCache", saveVideoRecording.FileName);
+			if (!FileSaverBackground.IsBusy)
+			{
+				FileSaverBackground.RunWorkerAsync(task);
+			}
+		}
+		public class FileSaveJob
+		{
+			BinaryReader readVideoFile;
+			BinaryReader readAudioFile;
+			BinaryWriter outFile;
+
+
+			public bool processvideo;
+			public bool processAudio;
+			public bool complete;
+
+			double totalLength;
+			double position;
+
+
+			public FileSaveJob(string video, string audio, string outFileName)
+			{
+
+				readVideoFile = new BinaryReader(new FileStream(video, FileMode.Open, FileAccess.Read));
+				readAudioFile = new BinaryReader(new FileStream(audio, FileMode.Open, FileAccess.Read));
+				totalLength =  readVideoFile.BaseStream.Length + readAudioFile.BaseStream.Length;
+				outFile = new BinaryWriter(new FileStream(outFileName, FileMode.Create, FileAccess.Write));
+				complete = false;
+				processAudio = true;
+				processvideo = true;
+			}
+
+			public int DoWork()
+			{
+				if(processvideo)
+				{
+
+					return 0;
+				}
+				else if (processAudio)
+				{
+
+					return 90;
+				}
+				else
+				{
+					return 100;
+				}
+			}
+
+		}
+		private void SaveFile(object sender, EventArgs e)
+		{
+			var res = saveVideoRecording.ShowDialog();
+
+		}
+
+		private void FileSaverBackground_ProgressChanged(object sender, ProgressChangedEventArgs e)
+		{
+			SavingProgress.Value = e.ProgressPercentage;
+		}
+
+		private void FileSaverBackground_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+		{
+			SavingProgress.Value = 0;
+			RecordingButton.Enabled = true;
+		}
+
+		private void SaveFileWork(object sender, DoWorkEventArgs e)
+		{
+			FileSaveJob job = (FileSaveJob)e.Argument;
+			var worker = (BackgroundWorker)sender;
+			while (!job.complete)
+			{
+				Thread.Sleep(0);
+
+				int progress = job.DoWork();
+
+				worker.ReportProgress(progress);
+			}
+		}
+
+		bool enableWriteToFile = false;
+
+		private void CheckedtoFile(object sender, EventArgs e)
+		{
+			enableWriteToFile = toFileCheckbox.Checked;
 		}
 	}
 }

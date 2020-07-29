@@ -156,6 +156,7 @@ namespace LocalLCD
 				//convert to string
 				foreach (var lcd in subscribers)
 				{
+					lcd.SetFontSize((float)width, (float)height);
 					lcd.PlayNextFrame(s_frame);
 				}
 

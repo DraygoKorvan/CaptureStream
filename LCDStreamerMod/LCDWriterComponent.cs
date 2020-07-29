@@ -181,11 +181,16 @@ namespace LocalLCD
 		}
 		internal void PlayNextFrame(string s_frame)
 		{
-			MyLog.Default.WriteLineAndConsole($"LocalLCDWriterComponent PlayNextFrame- {Script != null}");
+			//MyLog.Default.WriteLineAndConsole($"LocalLCDWriterComponent PlayNextFrame- {Script != null}");
 			if (Script != null)
 				Script.PlayNextFrame(s_frame);
 		}
 
+		internal void SetFontSize(float width, float height)
+		{
+			if (Script != null)
+				Script.SetFontSize(width, height);
+		}
 
 
 		internal void SetChannel(ulong currentChannel)

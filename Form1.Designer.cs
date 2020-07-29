@@ -28,7 +28,7 @@
 		/// </summary>
 		private void InitializeComponent()
 		{
-			this.button1 = new System.Windows.Forms.Button();
+			this.RecordingButton = new System.Windows.Forms.Button();
 			this.text_posY = new System.Windows.Forms.TextBox();
 			this.text_SizeX = new System.Windows.Forms.TextBox();
 			this.text_SizeY = new System.Windows.Forms.TextBox();
@@ -68,18 +68,25 @@
 			this.AudioDevice_Text = new System.Windows.Forms.Label();
 			this.MuteCheckbox = new System.Windows.Forms.CheckBox();
 			this.FrameMonitorText = new System.Windows.Forms.Label();
+			this.toFileCheckbox = new System.Windows.Forms.CheckBox();
+			this.saveVideoRecording = new System.Windows.Forms.SaveFileDialog();
+			this.Save = new System.Windows.Forms.Button();
+			this.SavingProgress = new System.Windows.Forms.ProgressBar();
+			this.label7 = new System.Windows.Forms.Label();
+			this.CompressionTextBox = new System.Windows.Forms.TextBox();
+			this.FileSaverBackground = new System.ComponentModel.BackgroundWorker();
 			((System.ComponentModel.ISupportInitialize)(this.Preview)).BeginInit();
 			this.SuspendLayout();
 			// 
-			// button1
+			// RecordingButton
 			// 
-			this.button1.Location = new System.Drawing.Point(35, 389);
-			this.button1.Name = "button1";
-			this.button1.Size = new System.Drawing.Size(75, 23);
-			this.button1.TabIndex = 0;
-			this.button1.Text = "Record";
-			this.button1.UseVisualStyleBackColor = true;
-			this.button1.MouseDown += new System.Windows.Forms.MouseEventHandler(this.RecordOnClick);
+			this.RecordingButton.Location = new System.Drawing.Point(35, 383);
+			this.RecordingButton.Name = "RecordingButton";
+			this.RecordingButton.Size = new System.Drawing.Size(75, 23);
+			this.RecordingButton.TabIndex = 0;
+			this.RecordingButton.Text = "Record";
+			this.RecordingButton.UseVisualStyleBackColor = true;
+			this.RecordingButton.MouseDown += new System.Windows.Forms.MouseEventHandler(this.RecordOnClick);
 			// 
 			// text_posY
 			// 
@@ -225,7 +232,7 @@
 			// RecordingText
 			// 
 			this.RecordingText.AutoSize = true;
-			this.RecordingText.Location = new System.Drawing.Point(132, 394);
+			this.RecordingText.Location = new System.Drawing.Point(138, 389);
 			this.RecordingText.Name = "RecordingText";
 			this.RecordingText.Size = new System.Drawing.Size(99, 13);
 			this.RecordingText.TabIndex = 17;
@@ -233,7 +240,7 @@
 			// 
 			// FrameRate_Text
 			// 
-			this.FrameRate_Text.Location = new System.Drawing.Point(292, 389);
+			this.FrameRate_Text.Location = new System.Drawing.Point(292, 385);
 			this.FrameRate_Text.Name = "FrameRate_Text";
 			this.FrameRate_Text.Size = new System.Drawing.Size(100, 20);
 			this.FrameRate_Text.TabIndex = 18;
@@ -242,7 +249,7 @@
 			// label6
 			// 
 			this.label6.AutoSize = true;
-			this.label6.Location = new System.Drawing.Point(258, 393);
+			this.label6.Location = new System.Drawing.Point(258, 389);
 			this.label6.Name = "label6";
 			this.label6.Size = new System.Drawing.Size(21, 13);
 			this.label6.TabIndex = 19;
@@ -384,7 +391,7 @@
 			// DitherOnBox
 			// 
 			this.DitherOnBox.AutoSize = true;
-			this.DitherOnBox.Location = new System.Drawing.Point(434, 393);
+			this.DitherOnBox.Location = new System.Drawing.Point(434, 388);
 			this.DitherOnBox.Name = "DitherOnBox";
 			this.DitherOnBox.Size = new System.Drawing.Size(54, 17);
 			this.DitherOnBox.TabIndex = 34;
@@ -406,6 +413,7 @@
 			// AudioDevice_Text
 			// 
 			this.AudioDevice_Text.AutoSize = true;
+			this.AudioDevice_Text.ForeColor = System.Drawing.Color.Black;
 			this.AudioDevice_Text.Location = new System.Drawing.Point(444, 29);
 			this.AudioDevice_Text.Name = "AudioDevice_Text";
 			this.AudioDevice_Text.Size = new System.Drawing.Size(71, 13);
@@ -436,12 +444,75 @@
 			this.FrameMonitorText.TabIndex = 38;
 			this.FrameMonitorText.Text = "frameln";
 			// 
+			// toFileCheckbox
+			// 
+			this.toFileCheckbox.AutoSize = true;
+			this.toFileCheckbox.Location = new System.Drawing.Point(141, 421);
+			this.toFileCheckbox.Name = "toFileCheckbox";
+			this.toFileCheckbox.Size = new System.Drawing.Size(57, 17);
+			this.toFileCheckbox.TabIndex = 39;
+			this.toFileCheckbox.Text = "to File:";
+			this.toFileCheckbox.UseVisualStyleBackColor = true;
+			this.toFileCheckbox.CheckedChanged += new System.EventHandler(this.CheckedtoFile);
+			// 
+			// saveVideoRecording
+			// 
+			this.saveVideoRecording.FileName = "video.sevm";
+			this.saveVideoRecording.InitialDirectory = "%appdata%\\SpaceEngineers";
+			this.saveVideoRecording.FileOk += new System.ComponentModel.CancelEventHandler(this.saveFileDialog_FileOk);
+			// 
+			// Save
+			// 
+			this.Save.Location = new System.Drawing.Point(204, 417);
+			this.Save.Name = "Save";
+			this.Save.Size = new System.Drawing.Size(75, 23);
+			this.Save.TabIndex = 40;
+			this.Save.Text = "Save";
+			this.Save.UseVisualStyleBackColor = true;
+			this.Save.Click += new System.EventHandler(this.SaveFile);
+			// 
+			// SavingProgress
+			// 
+			this.SavingProgress.Location = new System.Drawing.Point(36, 417);
+			this.SavingProgress.Name = "SavingProgress";
+			this.SavingProgress.Size = new System.Drawing.Size(100, 23);
+			this.SavingProgress.TabIndex = 41;
+			// 
+			// label7
+			// 
+			this.label7.AutoSize = true;
+			this.label7.Location = new System.Drawing.Point(361, 417);
+			this.label7.Name = "label7";
+			this.label7.Size = new System.Drawing.Size(67, 13);
+			this.label7.TabIndex = 42;
+			this.label7.Text = "Compression";
+			// 
+			// CompressionTextBox
+			// 
+			this.CompressionTextBox.Location = new System.Drawing.Point(434, 414);
+			this.CompressionTextBox.MaxLength = 6;
+			this.CompressionTextBox.Name = "CompressionTextBox";
+			this.CompressionTextBox.Size = new System.Drawing.Size(100, 20);
+			this.CompressionTextBox.TabIndex = 43;
+			this.CompressionTextBox.Text = "0";
+			// 
+			// FileSaverBackground
+			// 
+			this.FileSaverBackground.DoWork += new System.ComponentModel.DoWorkEventHandler(this.SaveFileWork);
+			this.FileSaverBackground.ProgressChanged += new System.ComponentModel.ProgressChangedEventHandler(this.FileSaverBackground_ProgressChanged);
+			this.FileSaverBackground.RunWorkerCompleted += new System.ComponentModel.RunWorkerCompletedEventHandler(this.FileSaverBackground_RunWorkerCompleted);
+			// 
 			// CaptureStreamForm
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
 			this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
 			this.ClientSize = new System.Drawing.Size(567, 450);
+			this.Controls.Add(this.CompressionTextBox);
+			this.Controls.Add(this.label7);
+			this.Controls.Add(this.SavingProgress);
+			this.Controls.Add(this.Save);
+			this.Controls.Add(this.toFileCheckbox);
 			this.Controls.Add(this.FrameMonitorText);
 			this.Controls.Add(this.MuteCheckbox);
 			this.Controls.Add(this.AudioDevice_Text);
@@ -479,7 +550,7 @@
 			this.Controls.Add(this.text_SizeX);
 			this.Controls.Add(this.text_posX);
 			this.Controls.Add(this.text_posY);
-			this.Controls.Add(this.button1);
+			this.Controls.Add(this.RecordingButton);
 			this.Name = "CaptureStreamForm";
 			this.Text = "Capture Stream";
 			this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.onClosing);
@@ -491,7 +562,7 @@
 
 		#endregion
 
-		private System.Windows.Forms.Button button1;
+		private System.Windows.Forms.Button RecordingButton;
 		private System.Windows.Forms.TextBox text_posY;
 		private System.Windows.Forms.TextBox text_posX;
 		private System.Windows.Forms.TextBox text_SizeX;
@@ -531,6 +602,13 @@
 		private System.Windows.Forms.Label AudioDevice_Text;
 		private System.Windows.Forms.CheckBox MuteCheckbox;
 		private System.Windows.Forms.Label FrameMonitorText;
+		private System.Windows.Forms.CheckBox toFileCheckbox;
+		private System.Windows.Forms.Button Save;
+		private System.Windows.Forms.ProgressBar SavingProgress;
+		internal System.Windows.Forms.SaveFileDialog saveVideoRecording;
+		private System.Windows.Forms.Label label7;
+		private System.Windows.Forms.TextBox CompressionTextBox;
+		private System.ComponentModel.BackgroundWorker FileSaverBackground;
 	}
 }
 
