@@ -1,25 +1,17 @@
-﻿using NAudio;
-using NAudio.CoreAudioApi;
-using NAudio.MediaFoundation;
+﻿using NAudio.CoreAudioApi;
 using NAudio.Wave;
-using NAudio.Wave.Compression;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Data;
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
 using System.IO.Pipes;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Windows.Forms;
-using System.Windows.Threading;
 
 namespace CaptureStream
 {
@@ -170,7 +162,12 @@ namespace CaptureStream
 			text_encoding.Text = sourceFormat.Encoding.ToString();
 			blankplayer = new WasapiOut(device, AudioClientShareMode.Shared, false, 0);
 			silence = new SilenceProvider(sourceFormat);
-			blankplayer.Init(silence);
+			try
+            {
+				blankplayer.Init(silence);
+			} 
+			catch (Exception ignored)
+            { }
 			audio.DataAvailable += Audio_DataAvailable;
 			audio.RecordingStopped += Audio_RecordingStopped;
 			AudioMonitor = device.AudioMeterInformation;

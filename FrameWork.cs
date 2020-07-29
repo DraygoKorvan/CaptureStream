@@ -28,7 +28,7 @@ namespace CaptureStream
 		public int PosX
 		{
 			get => posX;
-			set
+			set 
 			{
 				if (posX != value)
 				{
@@ -118,7 +118,7 @@ namespace CaptureStream
 		private int framerate;
 		public long framems;
 		private bool running;
-		public bool isKeyframe;
+		public bool isKeyFrame;
 
 		public byte[] outbuffer;
 		public byte[] keyFrame;
@@ -134,7 +134,7 @@ namespace CaptureStream
 
 		public FrameWork()
 		{
-			encoder = new M0454VideoEncoder();
+			encoder = new MyBetterVideoEncoder();
 		}
 
 		internal void Prepare(RecordingParameters recordingParemeters, bool isKeyFrame)
@@ -148,7 +148,7 @@ namespace CaptureStream
 			running = recordingParemeters.running;
 			stopped = false;
 			framerate = recordingParemeters.FrameRate;
-			this.isKeyframe = isKeyFrame;
+			this.isKeyFrame = isKeyFrame;
 			iMode = recordingParemeters.interpolationMode;
 			sMode = recordingParemeters.smoothingMode;
 			Format = recordingParemeters.pixelFormat;
@@ -212,13 +212,13 @@ namespace CaptureStream
 		public FrameWork DoEncode()
 		{
 
-			if(isKeyframe)
+			if(isKeyFrame)
 			{
-				outbuffer = encoder.Encode(outbuffer, stride, width, height, imageln);
+				outbuffer = encoder.Encode(outbuffer, stride, width, height);
 			}
 			else
 			{
-				outbuffer = encoder.Encode(outbuffer, keyFrame, stride, width, height, imageln, keyFrameln);
+				outbuffer = encoder.Encode(outbuffer, keyFrame, stride, width, height);
 			}
 			imageln = outbuffer.Length;
 			
@@ -230,7 +230,7 @@ namespace CaptureStream
 			result = new byte[imageln + sizeof(int) * 2 + sizeof(ushort) * 4];
 
 			int control = 0;
-			if (isKeyframe)
+			if (isKeyFrame)
 				control = 1;
 			Buffer.BlockCopy(BitConverter.GetBytes(control), 0, result, 0, sizeof(int));
 			Buffer.BlockCopy(BitConverter.GetBytes((ushort)stride), 0, result, sizeof(int), sizeof(ushort));

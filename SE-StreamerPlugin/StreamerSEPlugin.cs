@@ -1,11 +1,7 @@
 ﻿using CaptureStream;
 using Sandbox.ModAPI;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using VRage.Plugins;
 using System.Windows.Forms;
 using System.IO;
@@ -43,8 +39,12 @@ namespace SE_StreamerPlugin
 			{
 				return;
 			}
+
+			process = Process.GetCurrentProcess();
+			mainthread = Thread.CurrentThread;
+
 			RecorderApplicationthread = new Thread(StartApplication);
-			RecorderApplicationthread.IsBackground = true;
+			RecorderApplicationthread.IsBackground = true; 
 			RecorderApplicationthread.Start();
 			CommunicationThreadVideo = new Thread(ModCommunicationVideo);
 			CommunicationThreadVideo.IsBackground = true;
@@ -52,8 +52,6 @@ namespace SE_StreamerPlugin
 			CommunicationThreadAudio = new Thread(ModCommunicationAudio);
 			CommunicationThreadAudio.IsBackground = true;
 			CommunicationThreadAudio.Start();
-			process = Process.GetCurrentProcess();
-			mainthread = Thread.CurrentThread;
 			//MyLog.Default.WriteLine(gameInstance.ToString());
 		}
 
@@ -64,6 +62,9 @@ namespace SE_StreamerPlugin
 
 			Application.EnableVisualStyles();
 			//Application.SetCompatibleTextRenderingDefault(false);
+			
+			//TODO: detect when form not found and exit
+
 			form = new CaptureStreamForm();
 			form.toggleMuteAudio += Form_toggleEnableAudio;
 			Application.Run(form);
