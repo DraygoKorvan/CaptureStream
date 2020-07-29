@@ -188,7 +188,6 @@ namespace CaptureStream
 			stride = Math.Abs(bmpData.Stride);
 			imageln = stride * bmpData.Height;
 			outbuffer = new byte[imageln];
-
 			Marshal.Copy(ptr, outbuffer, 0, imageln);
 
 			if (format == PixelFormat.Format24bppRgb)
@@ -201,7 +200,6 @@ namespace CaptureStream
 			width = bmpData.Width;
 
 			//outbytes = imageln + sizeof(int) * 2 + sizeof(ushort) * 4;
-
 
 			destination.UnlockBits(bmpData);
 			framems = DateTime.Now.Ticks - framemsstart;
@@ -241,13 +239,15 @@ namespace CaptureStream
 			Buffer.BlockCopy(outbuffer, 0, result, sizeof(int) *2 + sizeof(ushort) * 4, imageln);
 			outbytes = imageln + sizeof(int) * 2 + sizeof(ushort) * 4;
 			return this;
-		} 
+		}
 
 
 		byte[] encodingBuffer = new byte[0];
 		int ConvertTo16bpp(byte[] encodedFrame, int stride, int width, int height, out int newstride)
 		{
 			newstride = stride;
+
+			//Whats the purpose of this?
 			if (encodedFrame.Length < sizeof(int) + sizeof(ushort) * 2)
 				return encodedFrame.Length;
 

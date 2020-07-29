@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -16,12 +17,11 @@ namespace CaptureStream
         public byte[] Encode(byte[] myFrame, byte[] myPrevUnCompressedFrame, int stride, int width, int height, int imageln, int keyframeln)
         {
             //change in size, so send a new image (keyframe)
-            if ((stride * height) != keyframeln)
+            if (imageln != keyframeln)
             {
                 return Encode(myFrame, stride, width, height, imageln);
             }
 
-            //make the buffer the size of the frame because we shouldnt make *more* data
             if (buffer.Length < imageln)
                 buffer = new byte[imageln];
 
@@ -35,7 +35,7 @@ namespace CaptureStream
             ushort myPrevVal = BitConverter.ToUInt16(myFrame, 0);
 
             //I could continue chunking data but this is fast
-            for (int i = 2; i + 1 < imageln; i += 2)
+            for (int i = 2; i < imageln; i += 2)
             {
                 ushort myOtherVal = BitConverter.ToUInt16(myPrevUnCompressedFrame, i);
                 ushort myVal = BitConverter.ToUInt16(myFrame, i);
@@ -59,8 +59,9 @@ namespace CaptureStream
                     compressedSize += 3;
                     if (compressedSize + 3 > buffer.Length)
                     {
-                        //Compression failed, we'll get em' next time
-                        return myFrame;
+                        byte[] nonCompressed = new byte[imageln];
+                        Buffer.BlockCopy(myFrame, 0, nonCompressed, 0, nonCompressed.Length);
+                        return nonCompressed;
                     }
                 }
             }
@@ -80,7 +81,7 @@ namespace CaptureStream
             int compressedSize = 0;
             byte count = 1;
             ushort myPrevVal = BitConverter.ToUInt16(myFrame, 0);
-            for (int i = 2; i + 1 < imageln; i += 2)
+            for (int i = 2; i < imageln; i += 2)
             {
                 ushort myVal = BitConverter.ToUInt16(myFrame, i);
                 if (i != imageln - 2 && count < 255 && Math.Abs(myPrevVal - myVal) <= Threshold)
@@ -96,7 +97,9 @@ namespace CaptureStream
                     compressedSize += 3;
                     if (compressedSize + 3 > buffer.Length)
                     {
-                        return myFrame;
+                        byte[] nonCompressed = new byte[imageln];
+                        Buffer.BlockCopy(myFrame, 0, nonCompressed, 0, nonCompressed.Length);
+                        return nonCompressed;
                     }
                 }
             }
@@ -109,7 +112,7 @@ namespace CaptureStream
         //if your making a new instance per frame then does a buffer help?
         public byte[] Decode(byte[] myFrame, byte[] myPrevUnCompressedFrame, int stride, int width, int height)
         {
-            int frameSize = (stride * height);
+            int frameSize = (width * height * 2);
             //I wasnt compressed so return the frame
             if (frameSize == myFrame.Length)
             {
@@ -122,7 +125,7 @@ namespace CaptureStream
 
             //whats faster division or a variable?
             int timesRun = 0;
-            for (int i = 0; i + 2 < myFrame.Length; i += 3)
+            for (int i = 0; i < myFrame.Length; i += 3)
             {
                 byte count = myFrame[i];
                 ushort myVal = BitConverter.ToUInt16(myFrame, i + 1);
@@ -135,8 +138,6 @@ namespace CaptureStream
                 {
                     for (int c = 0; c < count; c++)
                     {
-                        if ((timesRun + c) * 2 > buffer.Length - 2)
-                            return buffer;
                         BitConverter.GetBytes(myVal).CopyTo(buffer, (timesRun + c) * 2);
                     }
                 }

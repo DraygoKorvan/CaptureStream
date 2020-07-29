@@ -113,7 +113,6 @@ namespace LocalLCD
 				if (videoframes == null || videoptr >= videobytes)
 				{
 					return;//wait.
-					
 				}
 				int control = BitConverter.ToInt32(videoframes, videoptr);
 				ushort stride = BitConverter.ToUInt16(videoframes, videoptr + sizeof(int));
