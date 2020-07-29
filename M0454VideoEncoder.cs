@@ -46,7 +46,7 @@ namespace CaptureStream
                     myVal = 0;
                 }
 
-                if (i != myFrame.Length - 2 && count < 255 && Math.Abs(myPrevVal - myVal) <= Threshold)
+                if (i != imageln - 2 && count < 255 && Math.Abs(myPrevVal - myVal) <= Threshold)
                 {
                     count++;
                 }
@@ -135,6 +135,8 @@ namespace CaptureStream
                 {
                     for (int c = 0; c < count; c++)
                     {
+                        if ((timesRun + c) * 2 > buffer.Length - 2)
+                            return buffer;
                         BitConverter.GetBytes(myVal).CopyTo(buffer, (timesRun + c) * 2);
                     }
                 }
