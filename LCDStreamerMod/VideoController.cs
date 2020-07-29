@@ -139,12 +139,12 @@ namespace LocalLCD
 				videoptr += frameln;
 				if (control == 1)
 				{
-					frameDecoder = decoder.Decode(frameDecoder, null, stride, width, height, stride * height);
+					frameDecoder = decoder.Decode(frameDecoder, null, stride, width, height);
 					decodedKeyframe = frameDecoder;
 				}
 				else
 				{
-					frameDecoder = decoder.Decode(frameDecoder, decodedKeyframe, stride, width, height, stride * height);
+					frameDecoder = decoder.Decode(frameDecoder, decodedKeyframe, stride, width, height);
 				}
 				
 

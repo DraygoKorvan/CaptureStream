@@ -10,7 +10,7 @@ namespace CaptureStream
 	{
 
 
-		public byte[] Decode(byte[] encodedBytes, byte[] myPrevUnCompressedFrame, int stride, int width, int height, int imageln)
+		public byte[] Decode(byte[] encodedBytes, byte[] myPrevUnCompressedFrame, int stride, int width, int height)
 		{
 			return encodedBytes;
 		}
