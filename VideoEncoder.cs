@@ -86,7 +86,7 @@ namespace CaptureStream
 					}
 	
 
-					if(work.isKeyframe)
+					if(work.isKeyFrame)
 					{
 						keyFrame = work.outbuffer;
 						keyFrameLn = work.imageln;

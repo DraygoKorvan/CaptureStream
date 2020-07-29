@@ -118,7 +118,7 @@ namespace CaptureStream
 		private int framerate;
 		public long framems;
 		private bool running;
-		public bool isKeyframe;
+		public bool isKeyFrame;
 
 		public byte[] outbuffer;
 		public byte[] keyFrame;
@@ -148,7 +148,7 @@ namespace CaptureStream
 			running = recordingParemeters.running;
 			stopped = false;
 			framerate = recordingParemeters.FrameRate;
-			this.isKeyframe = isKeyFrame;
+			this.isKeyFrame = isKeyFrame;
 			iMode = recordingParemeters.interpolationMode;
 			sMode = recordingParemeters.smoothingMode;
 			Format = recordingParemeters.pixelFormat;
@@ -188,7 +188,6 @@ namespace CaptureStream
 			stride = Math.Abs(bmpData.Stride);
 			imageln = stride * bmpData.Height;
 			outbuffer = new byte[imageln];
-
 			Marshal.Copy(ptr, outbuffer, 0, imageln);
 
 			if (format == PixelFormat.Format24bppRgb)
@@ -202,7 +201,6 @@ namespace CaptureStream
 
 			//outbytes = imageln + sizeof(int) * 2 + sizeof(ushort) * 4;
 
-
 			destination.UnlockBits(bmpData);
 			framems = DateTime.Now.Ticks - framemsstart;
 			framems /= 10000;
@@ -212,7 +210,7 @@ namespace CaptureStream
 		public FrameWork DoEncode()
 		{
 
-			if(isKeyframe)
+			if(isKeyFrame)
 			{
 				outbuffer = encoder.Encode(outbuffer, stride, width, height, imageln);
 			}
@@ -230,7 +228,7 @@ namespace CaptureStream
 			result = new byte[imageln + sizeof(int) * 2 + sizeof(ushort) * 4];
 
 			int control = 0;
-			if (isKeyframe)
+			if (isKeyFrame)
 				control = 1;
 			Buffer.BlockCopy(BitConverter.GetBytes(control), 0, result, 0, sizeof(int));
 			Buffer.BlockCopy(BitConverter.GetBytes((ushort)stride), 0, result, sizeof(int), sizeof(ushort));
@@ -241,13 +239,15 @@ namespace CaptureStream
 			Buffer.BlockCopy(outbuffer, 0, result, sizeof(int) *2 + sizeof(ushort) * 4, imageln);
 			outbytes = imageln + sizeof(int) * 2 + sizeof(ushort) * 4;
 			return this;
-		} 
+		}
 
 
 		byte[] encodingBuffer = new byte[0];
 		int ConvertTo16bpp(byte[] encodedFrame, int stride, int width, int height, out int newstride)
 		{
 			newstride = stride;
+
+			//Whats the purpose of this?
 			if (encodedFrame.Length < sizeof(int) + sizeof(ushort) * 2)
 				return encodedFrame.Length;
 
