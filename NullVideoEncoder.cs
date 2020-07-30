@@ -15,14 +15,17 @@ namespace CaptureStream
 			return encodedBytes;
 		}
 
-		public byte[] Encode(byte[] bytesToEncode, int stride, int width, int height)
+		public byte[] Encode(byte[] bytesToEncode, int stride, int width, int height, int imageln)
 		{
-			return bytesToEncode;
+			var outbuffer = new byte[imageln];
+			Buffer.BlockCopy(bytesToEncode, 0, outbuffer, 0, imageln);
+			return outbuffer;
 		}
 
-		public byte[] Encode(byte[] bytesToEncode, byte[] myPrevUnCompressedFrame, int stride, int width, int height)
+		public byte[] Encode(byte[] bytesToEncode, byte[] myPrevUnCompressedFrame, int stride, int width, int height, int imageln, int keyframeln)
 		{
-			return bytesToEncode;
+			return Encode(bytesToEncode, stride, width, height, imageln);
+			
 		}
 	}
 }

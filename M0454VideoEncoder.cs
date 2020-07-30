@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace CaptureStream
 {
-    class M0454VideoEncoder //: iSEVideoEncoder
+    class M0454VideoEncoder : iSEVideoEncoder
     {
 
         public static int Threshold = 10;
