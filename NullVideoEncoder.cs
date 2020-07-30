@@ -9,7 +9,18 @@ namespace CaptureStream
 	public class NullVideoEncoder : iSEVideoEncoder
 	{
 
+		int iSEVideoEncoder.Threshold
+		{
+			get
+			{
+				return 0;
+			}
+			set
+			{
 
+			}
+
+		}
 		public byte[] Decode(byte[] encodedBytes, byte[] myPrevUnCompressedFrame, int stride, int width, int height)
 		{
 			return encodedBytes;

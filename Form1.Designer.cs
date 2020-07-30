@@ -495,6 +495,7 @@
 			this.CompressionTextBox.Size = new System.Drawing.Size(100, 20);
 			this.CompressionTextBox.TabIndex = 43;
 			this.CompressionTextBox.Text = "0";
+			this.CompressionTextBox.TextChanged += new System.EventHandler(this.UpdateCompression);
 			// 
 			// FileSaverBackground
 			// 

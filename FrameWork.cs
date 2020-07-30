@@ -127,6 +127,7 @@ namespace CaptureStream
 		private int stride;
 		private int width;
 		private int height;
+		private int compressionRate;
 
 		InterpolationMode iMode = InterpolationMode.Default;
 		SmoothingMode sMode = SmoothingMode.Default;
@@ -137,7 +138,7 @@ namespace CaptureStream
 			encoder = new M0454VideoEncoder();
 		}
 
-		internal void Prepare(RecordingParameters recordingParemeters, bool isKeyFrame)
+		internal void Prepare(RecordingParameters recordingParemeters, bool isKeyFrame, int compression)
 		{
 			PosX = recordingParemeters.PosX;
 			PosY = recordingParemeters.PosY;
@@ -152,6 +153,8 @@ namespace CaptureStream
 			iMode = recordingParemeters.interpolationMode;
 			sMode = recordingParemeters.smoothingMode;
 			Format = recordingParemeters.pixelFormat;
+			compressionRate = compression;
+			encoder.Threshold = compression;
 		}
 
 		public void GetScreenshot()

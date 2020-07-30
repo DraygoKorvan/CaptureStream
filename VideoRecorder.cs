@@ -18,7 +18,7 @@ namespace CaptureStream
 
 		}
 	}
-
+	
 	public class VideoStoppedArgs
 	{
 
@@ -80,7 +80,7 @@ namespace CaptureStream
 			}
 	
 		}
-
+		int compression = 0;
 		private void Update()
 		{
 			timer.Start();
@@ -126,6 +126,7 @@ namespace CaptureStream
 				{
 					needframe = RecordingParemeters.running;
 					keyFrame = true;
+					compression = RecordingParemeters.compressionRate;
 					frames = 0;
 					nextFrame = timer.ElapsedTicks + frametime;
 					nextFrameSecond += frequency;
@@ -147,7 +148,7 @@ namespace CaptureStream
 				{
 					p = new FrameWork();
 				}
-				p.Prepare(RecordingParemeters, keyFrame);
+				p.Prepare(RecordingParemeters, keyFrame, compression);
 				p.GetScreenshot();
 				var task = Task.Run(p.DoWork);
 				Tasks.Add(task);

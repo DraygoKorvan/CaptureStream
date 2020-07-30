@@ -25,6 +25,7 @@ namespace CaptureStream
 		public float audioBalance = 0.5f;
 		public float leftVolume = 1.0f;
 		public float rightVolume = 1.0f;
+		public int compressionRate = 10;
 
 		public RecordingParameters(int posX, int posY, int sizeX, int sizeY, int resX, int resY, int framerate, InterpolationMode iMode, SmoothingMode sMode)
 		{

@@ -63,7 +63,7 @@ namespace LocalLCD
 				RecieveNetworkStreamAvg = RecieveNetworkStreamAvg;
 			RecieveNetworkStreamAvg = updateCounter(RecieveNetworkStreamAvg, RecieveNetworkStream);
 
-
+			RecieveNetworkStream = 0;
 			DebugString.AppendLine($"RVS: {RecieveVideoStream,-10:N0} packet bytes");
 			DebugString.AppendLine($"RAS: {RecieveAudioStream,-10:N0} packet bytes  {LCDWriterCore.isLocalMuted}");
 			DebugString.AppendLine($"RNS: {RecieveNetworkStreamAvg * 60,-10:N0} bytes/s");

@@ -401,6 +401,8 @@ namespace CaptureStream
 			text_SizeX.Text = videorecordingsettings.SizeX.ToString();
 			text_SizeY.Text = videorecordingsettings.SizeY.ToString();
 			FrameRate_Text.Text = videorecordingsettings.FrameRate.ToString();
+			CompressionTextBox.Text = videorecordingsettings.compressionRate.ToString();
+			
 			InterpolationMode interpolationMode = videorecordingsettings.interpolationMode;
 			SmoothingMode smoothingMode = videorecordingsettings.smoothingMode;
 
@@ -509,6 +511,17 @@ namespace CaptureStream
 				if (newval > 0)
 				{
 					videorecordingsettings.ResY = newval;
+				}
+			}
+		}
+
+		private void UpdateCompression(object sender, EventArgs e)
+		{
+			if (int.TryParse(((TextBox)sender).Text, out int newval))
+			{
+				if (newval > 0)
+				{
+					videorecordingsettings.compressionRate = newval;
 				}
 			}
 		}
@@ -631,6 +644,8 @@ namespace CaptureStream
 			videorecordingsettings.rightVolume = (float)(91 - RightVolumeSlider.Value) / 91f;
 			RightVolumeText.Text = string.Format("{0:N0}", videorecordingsettings.rightVolume * 100f);
 		}
+
+
 
 		private void LeftVolumeText_Click(object sender, EventArgs e)
 		{
@@ -822,5 +837,7 @@ namespace CaptureStream
 		{
 			enableWriteToFile = toFileCheckbox.Checked;
 		}
+
+
 	}
 }

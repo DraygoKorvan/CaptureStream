@@ -36,12 +36,24 @@ namespace LocalLCD
 		Sandbox.ModAPI.IMyTextPanel Parent;
 		//IMyTextSurface surface;
 		private List<IMySlimBlock> blocks = new List<IMySlimBlock>();
+
+		byte[] soundBuffer = new byte[1024];
+		int buffersize = 1024;
+		int samplerate = 41100;
+		bool havebuffer = false;
 		internal void PlayAudio(byte[] audioframes, int size, int sampleRate)
 		{
+			samplerate = sampleRate;
+			buffersize = size;
+			havebuffer = true;
+			if (buffersize > soundBuffer.Length)
+				soundBuffer = new byte[soundBuffer.Length];
+			Buffer.BlockCopy(audioframes, 0, soundBuffer, 0, size);
 			//MyLog.Default.WriteLine($"VideoPlayerScript PlayAudio {AudioEmitter != null}");
-			if (AudioEmitter != null)
+			if (!AudioEmitter.IsPlaying && AudioEmitter != null)
 			{
-				AudioEmitter.PlaySound(audioframes, size, sampleRate, 1, 200);
+				AudioEmitter.PlaySound(audioframes, size, sampleRate, 1, 40);
+				havebuffer = false;
 			}
 				
 		}
@@ -54,7 +66,16 @@ namespace LocalLCD
 		public VideoPlayerScript(Sandbox.ModAPI.IMyTextPanel panel)
 		{
 			AudioEmitter = new MyEntity3DSoundEmitter((MyEntity)panel);
+			AudioEmitter.StoppedPlaying += AudioEmitter_StoppedPlaying1;
 			Parent = panel;
+		}
+
+		private void AudioEmitter_StoppedPlaying1(MyEntity3DSoundEmitter obj)
+		{
+			if(havebuffer == true)
+			{
+				AudioEmitter.PlaySound(soundBuffer, buffersize, samplerate, 1, 40);
+			}
 		}
 
 		public static VideoPlayerScript Factory(Sandbox.ModAPI.IMyTextPanel Panel)

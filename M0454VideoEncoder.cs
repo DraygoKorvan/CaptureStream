@@ -14,7 +14,21 @@ namespace CaptureStream
 
         byte[] buffer = new byte[0];
 
-        public byte[] Encode(byte[] myFrame, byte[] myPrevUnCompressedFrame, int stride, int width, int height, int imageln, int keyframeln)
+		int iSEVideoEncoder.Threshold
+        {
+            get
+			{
+                return this.Threshold;
+			}
+            set
+			{
+                if (value >= 0)
+                    this.Threshold = value;
+			}
+            
+        }
+
+		public byte[] Encode(byte[] myFrame, byte[] myPrevUnCompressedFrame, int stride, int width, int height, int imageln, int keyframeln)
         {
             //change in size, so send a new image (keyframe)
             if (imageln != keyframeln)
