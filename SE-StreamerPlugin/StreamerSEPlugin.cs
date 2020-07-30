@@ -99,12 +99,16 @@ namespace SE_StreamerPlugin
 			}
 			else
 			{
-				MyLog.Default.WriteLineAndConsole("Plugin - Released Events");
-				SendAudio = null;
-				SendVideo = null;
-				Control = null;
-				MyAPIUtilities.Static.UnregisterMessageHandler(videostreamcommand, RequestStreams);
-				registerevents = false;
+				if(registerevents)
+				{
+					MyLog.Default.WriteLineAndConsole("Plugin - Released Events");
+					SendAudio = null;
+					SendVideo = null;
+					Control = null;
+					MyAPIUtilities.Static.UnregisterMessageHandler(videostreamcommand, RequestStreams);
+					registerevents = false;
+				}
+
 			}
 			//MyLog.Default.WriteLineAndConsole("Status: " + CommunicationThread.ThreadState.ToString());
 		}
@@ -213,7 +217,7 @@ namespace SE_StreamerPlugin
 								break;
 						}
 						while (rest < bytes);
-						MyLog.Default.WriteLine($"Plugin: ModCommunication - Sending Video - {bytes + headersize}");
+						//MyLog.Default.WriteLine($"Plugin: ModCommunication - Sending Video - {bytes + headersize}");
 						SendVideo?.Invoke(transfervbuffer, bytes + headersize);
 					
 					}

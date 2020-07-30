@@ -33,6 +33,22 @@ namespace LocalLCD
 		public ushort FrameRate { get; internal set; }
 		public int FrameBytes { get; internal set; }
 
+		public bool Visible
+		{
+			get
+			{
+				if (debugUI == null)
+					return false;
+				return debugUI.Visible;
+			}
+			set
+			{
+				if (debugUI != null)
+				{
+					debugUI.Visible = value;
+				}
+			}
+		}
 		public void Start(HudAPIv2 api)
 		{
 			debugText = new HUDMessage();

@@ -68,7 +68,7 @@ namespace LCDText2
 			int AverageBytesPerSecond = BitConverter.ToInt32(obj, sizeof(int) * 3);
 			int offset = sizeof(int) * 4;
 			length -= sizeof(int) * 4;
-			MyLog.Default.WriteLine($"Add Data to Audio Buffer {offset} {bytes} {length} {AverageBytesPerSecond}");
+			//MyLog.Default.WriteLine($"Add Data to Audio Buffer {offset} {bytes} {length} {AverageBytesPerSecond}");
 			if(averageBytesPerSecondAudio != AverageBytesPerSecond)
 			{
 				sampleRate = SampleRate;
@@ -162,7 +162,7 @@ namespace LCDText2
 			ushort width = BitConverter.ToUInt16(obj, offset + sizeof(int) + sizeof(ushort) * 2);
 			ushort framerate = BitConverter.ToUInt16(obj, offset + sizeof(int) + sizeof(ushort) * 3);
 			int framesize = BitConverter.ToInt32(obj, offset + sizeof(int) + sizeof(ushort) * 4);
-			MyLog.Default.WriteLine($"Packet Header: c {control} w {width} s {stride} h {height} f {framerate} fs {framesize}");
+			//MyLog.Default.WriteLine($"Packet Header: c {control} w {width} s {stride} h {height} f {framerate} fs {framesize}");
 
 
 			if(stride * height * framerate > videoStride * videoHeight * videoFramerate)
@@ -177,7 +177,7 @@ namespace LCDText2
 			
 			int writebytes = framesize + sizeof(int) * 2 + sizeof(ushort) * 4;
 			
-			MyLog.Default.WriteLine($"Writing to Video buffer? {writebytes} {offset} {length}");
+			//MyLog.Default.WriteLine($"Writing to Video buffer? {writebytes} {offset} {length}");
 			if (writebytes <= length)
 			{
 				if(control == 1)
@@ -199,7 +199,7 @@ namespace LCDText2
 				if (writevideoposition == -1 || vptr[writevideoposition] + writebytes > videostorage[writevideoposition].Length)
 					return;//discard
 				//MyLog.Default.WriteLine($"Read {offset} {writebytes}  {obj.Length}");
-				MyLog.Default.WriteLine($"Write {vptr[writevideoposition]} {writebytes} {videostorage[writevideoposition].Length}");
+				//MyLog.Default.WriteLine($"Write {vptr[writevideoposition]} {writebytes} {videostorage[writevideoposition].Length}");
 				Buffer.BlockCopy(obj, offset, videostorage[writevideoposition], vptr[writevideoposition], writebytes);
 				vptr[writevideoposition] += writebytes;
 
@@ -221,7 +221,7 @@ namespace LCDText2
 		internal bool GetNextSecond(out byte[] audiobuffer, out int audiolen,  out byte[] videobuffer, out int videolen, out int sampleRate)
 		{
 			sampleRate = this.sampleRate;
-			MyLog.Default.WriteLine($"VideoBuffer GetNextSecond audiosize {audiosize} videosize {videosize}");
+			//MyLog.Default.WriteLine($"VideoBuffer GetNextSecond audiosize {audiosize} videosize {videosize}");
 			if (paused || audiosize <= 1 || videosize <= 1)
 			{
 				if (!paused && !closing)

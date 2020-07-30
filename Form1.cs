@@ -519,7 +519,7 @@ namespace CaptureStream
 		{
 			if (int.TryParse(((TextBox)sender).Text, out int newval))
 			{
-				if (newval > 0)
+				if (newval >= 0)
 				{
 					videorecordingsettings.compressionRate = newval;
 				}

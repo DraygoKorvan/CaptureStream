@@ -129,7 +129,7 @@ namespace LocalLCD
 				if (framerate == 0)
 					framerate = 20;
 				nextVideoFrame += (tickspersecond / framerate);
-				MyLog.Default.WriteLine($"Video Packet Header: c {control} s {stride} h {height} fs {frameln} srcln {videoframes.Length} ptr {videoptr}");
+				//MyLog.Default.WriteLine($"Video Packet Header: c {control} s {stride} h {height} fs {frameln} srcln {videoframes.Length} ptr {videoptr}");
 				MyLog.Default.Flush();
 				videoptr += sizeof(int) * 2 + sizeof(ushort) * 4;
 				var frameDecoder = new byte[frameln];

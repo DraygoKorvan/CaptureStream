@@ -139,11 +139,20 @@ namespace LocalLCD
 					MyAPIGateway.Multiplayer.SendMessageTo(COMID, obj, player.SteamUserId);
 			}
 		}
+		MenuRootCategory PlayerOptions;
+		MenuItem ShowDebug;
 
 		private void RegisterHudAPI()
 		{
 			debugMonitor.Start(HudAPI);
+			PlayerOptions = new MenuRootCategory("Video Player", MenuRootCategory.MenuFlag.PlayerMenu, "Video Player Settings");
+			ShowDebug = new MenuItem($"Show Debug {debugMonitor.Visible}", PlayerOptions, ToggleDebugVisible);
+		}
 
+		private void ToggleDebugVisible()
+		{
+			debugMonitor.Visible = !debugMonitor.Visible;
+			ShowDebug.Text = $"Show Debug {debugMonitor.Visible}";
 		}
 
 		internal void Unsubscribe(LocalLCDWriterComponent localLCDWriterComponent, ulong steamid)
@@ -206,7 +215,7 @@ namespace LocalLCD
 
 		internal void AddBuffer(VideoBuffer videoBuffer)
 		{
-			MyLog.Default.WriteLine("AddBuffer");
+			//MyLog.Default.WriteLine("AddBuffer");
 			VideoController Component;
 			lock (controllers)
 			{
@@ -219,7 +228,7 @@ namespace LocalLCD
 				{
 					Component = new VideoController(videoBuffer);
 					controllers.Add(videoBuffer.steamid, Component);
-					MyLog.Default.WriteLine("AddLineItem Called from AddBuffer");
+					//MyLog.Default.WriteLine("AddLineItem Called from AddBuffer");
 					LocalLCDWriterComponent.AddLineItem(MyStringId.GetOrCompute(videoBuffer.steamid.ToString()), videoBuffer.steamid);
 				}
 				if (time.IsRunning)
