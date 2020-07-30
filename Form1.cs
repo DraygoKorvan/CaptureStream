@@ -144,6 +144,11 @@ namespace CaptureStream
 
 				video.ReturnWork(e.payload);
 			}
+			if (enableWriteToFile && binaryVideoWriter != null)
+			{
+				binaryVideoWriter.Write(e.payload.result, 0, e.payload.outbytes);
+				binaryVideoWriter.Flush();
+			}
 
 		}
 
@@ -190,7 +195,12 @@ namespace CaptureStream
 				VideoStream.Flush();
 				VideoStream.WaitForPipeDrain();
 			}
-
+			if(enableWriteToFile && binaryVideoWriter != null)
+			{
+				binaryVideoWriter.Flush();
+				binaryVideoWriter.Close();
+				binaryVideoWriter.Dispose();
+			}
 		}
 
 		public void Video_Data_Available(object sender, VideoEventArgs e)
@@ -206,6 +216,12 @@ namespace CaptureStream
 			{
 				AudioStream.Flush();
 				AudioStream.WaitForPipeDrain();
+			}
+			if(enableWriteToFile && binaryAudioWriter != null)
+			{
+				binaryAudioWriter.Flush();
+				binaryAudioWriter.Close();
+				binaryAudioWriter.Dispose();
 			}
 		}
 		private byte[] StereoToMono(byte[] input)
@@ -262,6 +278,17 @@ namespace CaptureStream
 					AudioStream.Write(output, 0, bytesread / 2);
 					AudioStream.Flush();
 					AudioStream.WaitForPipeDrain();
+				}
+				if(enableWriteToFile && binaryAudioWriter != null)
+				{
+					binaryAudioWriter.Write(BitConverter.GetBytes(control), 0, sizeof(int));
+					binaryAudioWriter.Write(BitConverter.GetBytes(bytesread), 0, sizeof(int));
+					binaryAudioWriter.Write(BitConverter.GetBytes(six.WaveFormat.SampleRate), 0, sizeof(int));
+					binaryAudioWriter.Write(BitConverter.GetBytes(six.WaveFormat.AverageBytesPerSecond / 2), 0, sizeof(int));
+					//AudioStream.Write(BitConverter.GetBytes(volout.WaveFormat.SampleRate), 0, sizeof(int));
+					//AudioStream.Write(BitConverter.GetBytes(volout.WaveFormat.AverageBytesPerSecond), 0, sizeof(int));
+					binaryAudioWriter.Write(output, 0, bytesread / 2);
+					binaryAudioWriter.Flush();
 				}
 				audiolengthmonitor = bytesread / 2;
 			}
@@ -331,7 +358,11 @@ namespace CaptureStream
 						blankplayer.Play();
 						audioframe = 0;
 						frame = 0;
-						
+						if (enableWriteToFile)
+						{
+							binaryAudioWriter = new BinaryWriter(new FileStream(AUDIOFILECACHE, FileMode.Create, FileAccess.Write));
+							binaryVideoWriter = new BinaryWriter(new FileStream(VIDEOFILECACHE, FileMode.Create, FileAccess.Write));
+						}
 						audio.StartRecording();
 						video.Start(videorecordingsettings);
 						encoder.Start(videorecordingsettings);
@@ -652,18 +683,21 @@ namespace CaptureStream
 			Save.Enabled = !recording;
 			toFileCheckbox.Enabled = !recording;
 		}
-		
+		const string VIDEOFILECACHE = "videoCache";
+		const string AUDIOFILECACHE = "audioCache";
 
 		private void saveFileDialog_FileOk(object sender, CancelEventArgs e)
 		{
 			RecordingButton.Enabled = false;
 			if (e.Cancel)
 				return;
-			var task = new FileSaveJob("videoCache", "audioCache", saveVideoRecording.FileName);
+
 			if (!FileSaverBackground.IsBusy)
 			{
+				var task = new FileSaveJob(VIDEOFILECACHE, AUDIOFILECACHE, saveVideoRecording.FileName);
 				FileSaverBackground.RunWorkerAsync(task);
 			}
+			
 		}
 		public class FileSaveJob
 		{
@@ -677,7 +711,6 @@ namespace CaptureStream
 			public bool complete;
 
 			double totalLength;
-			double position;
 
 
 			public FileSaveJob(string video, string audio, string outFileName)
@@ -697,17 +730,58 @@ namespace CaptureStream
 				if(processvideo)
 				{
 
-					return 0;
+					return DoVideoCopy();
 				}
 				else if (processAudio)
 				{
 
-					return 90;
+					return DoAudioCopy();
 				}
 				else
 				{
+					if(outFile != null && outFile.BaseStream.CanWrite)
+					{
+						outFile.Flush();
+						outFile.Dispose();
+
+					}
+
+					complete = true;
 					return 100;
 				}
+			}
+			const int READCHUNK = 65536;
+			byte[] readbuffer = new byte[READCHUNK];
+
+			long videobytesread = 0;
+			long audiobytesread = 0;
+			private int DoVideoCopy()
+			{
+				var videoread = readVideoFile.Read(readbuffer, 0, READCHUNK);
+				videobytesread += videoread;
+				outFile.Write(readbuffer, 0, videoread);
+				if (readVideoFile.BaseStream.Position == readVideoFile.BaseStream.Length)
+				{
+					outFile.Write(2);//eof byte
+					processvideo = false;
+					readVideoFile.Close();
+					readVideoFile.Dispose();
+				}
+				return (int)((videobytesread * 100L) / totalLength);
+			}
+
+			private int DoAudioCopy()
+			{
+				var audioread = readAudioFile.Read(readbuffer, 0, READCHUNK);
+				audiobytesread += audioread;
+				outFile.Write(readbuffer, 0, audioread);
+				if (readAudioFile.BaseStream.Position == readAudioFile.BaseStream.Length)
+				{
+					processAudio = false;
+					readAudioFile.Close();
+					readAudioFile.Dispose();
+				}
+				return (int)(((videobytesread + audiobytesread) * 100L) / totalLength);
 			}
 
 		}
