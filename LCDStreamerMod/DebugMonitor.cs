@@ -65,7 +65,7 @@ namespace LocalLCD
 
 
 			DebugString.AppendLine($"RVS: {RecieveVideoStream,-10:N0} packet bytes");
-			DebugString.AppendLine($"RAS: {RecieveAudioStream,-10:N0} packet bytes");
+			DebugString.AppendLine($"RAS: {RecieveAudioStream,-10:N0} packet bytes  {LCDWriterCore.isLocalMuted}");
 			DebugString.AppendLine($"RNS: {RecieveNetworkStreamAvg * 60,-10:N0} bytes/s");
 			DebugString.AppendLine($"Video: {VideoByteLength,10:N0} frame second bytes");
 			DebugString.AppendLine($"       {FrameBytes,10:N0} bytes");

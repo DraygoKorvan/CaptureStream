@@ -234,9 +234,9 @@ namespace CaptureStream
 			{
 				// copy in the first 16 bit sample
 				float inputfirst = (float)((float)input[n] * lmult) + ((float)input[n + 2] * rmult);
-				float firstbyte = Math.Max(Math.Min(inputfirst, 0f), 255f);
+				float firstbyte = Math.Min(Math.Max(inputfirst, 0f), 255f);
 				float inputsecond = (float)((float)input[n + 1] * lmult) + ((float)input[n + 3] * rmult);
-				float secondbyte = Math.Max(Math.Min(inputsecond, 0f), 255f);
+				float secondbyte = Math.Min(Math.Max(inputsecond, 0f), 255f);
 				output[outputIndex++] = (byte)firstbyte;
 				output[outputIndex++] = (byte)secondbyte;
 			}
@@ -252,15 +252,15 @@ namespace CaptureStream
 			using (var str = new RawSourceWaveStream(buffer, 0, e.BytesRecorded, audio.WaveFormat))
 			{
 				var six = new WaveFloatTo16Provider(str);
-				//byte[] output = new byte[e.BytesRecorded / 2];
-				byte[] newbuffer = new byte[e.BytesRecorded / 2];
-				var bytesread = six.Read(newbuffer, 0, e.BytesRecorded);
-				//var volout = new StereoToMonoProvider16(six);
-				//volout.LeftVolume =  (1f - videorecordingsettings.audioBalance) * videorecordingsettings.leftVolume;
-				//volout.RightVolume = (videorecordingsettings.audioBalance) * videorecordingsettings.rightVolume;
+				byte[] output = new byte[e.BytesRecorded / 2];
+				//byte[] newbuffer = new byte[e.BytesRecorded / 2];
+				//var bytesread = six.Read(newbuffer, 0, e.BytesRecorded);
+				var volout = new StereoToMonoProvider16(six);
+				volout.LeftVolume =  (1f - videorecordingsettings.audioBalance) * videorecordingsettings.leftVolume;
+				volout.RightVolume = (videorecordingsettings.audioBalance) * videorecordingsettings.rightVolume;
 				//byte[] output = new byte[bytesread / 2];
-				//var bytesread = volout.Read(output, 0, e.BytesRecorded / 2);
-				var output = StereoToMono(newbuffer);
+				var bytesread = volout.Read(output, 0, e.BytesRecorded / 2);
+				//var output = StereoToMono(newbuffer);
 				int control = 0;
 				if(audioframe == 0)
 				{
@@ -270,12 +270,12 @@ namespace CaptureStream
 				if(isConnected)
 				{
 					AudioStream.Write(BitConverter.GetBytes(control), 0, sizeof(int));
-					AudioStream.Write(BitConverter.GetBytes(bytesread), 0, sizeof(int));
-					AudioStream.Write(BitConverter.GetBytes(six.WaveFormat.SampleRate), 0, sizeof(int));
-					AudioStream.Write(BitConverter.GetBytes(six.WaveFormat.AverageBytesPerSecond / 2), 0, sizeof(int));
+					AudioStream.Write(BitConverter.GetBytes(bytesread ), 0, sizeof(int));
+					AudioStream.Write(BitConverter.GetBytes(volout.WaveFormat.SampleRate), 0, sizeof(int));
+					AudioStream.Write(BitConverter.GetBytes(volout.WaveFormat.AverageBytesPerSecond), 0, sizeof(int));
 					//AudioStream.Write(BitConverter.GetBytes(volout.WaveFormat.SampleRate), 0, sizeof(int));
 					//AudioStream.Write(BitConverter.GetBytes(volout.WaveFormat.AverageBytesPerSecond), 0, sizeof(int));
-					AudioStream.Write(output, 0, bytesread / 2);
+					AudioStream.Write(output, 0, bytesread);
 					AudioStream.Flush();
 					AudioStream.WaitForPipeDrain();
 				}
@@ -283,14 +283,14 @@ namespace CaptureStream
 				{
 					binaryAudioWriter.Write(BitConverter.GetBytes(control), 0, sizeof(int));
 					binaryAudioWriter.Write(BitConverter.GetBytes(bytesread), 0, sizeof(int));
-					binaryAudioWriter.Write(BitConverter.GetBytes(six.WaveFormat.SampleRate), 0, sizeof(int));
-					binaryAudioWriter.Write(BitConverter.GetBytes(six.WaveFormat.AverageBytesPerSecond / 2), 0, sizeof(int));
+					binaryAudioWriter.Write(BitConverter.GetBytes(volout.WaveFormat.SampleRate), 0, sizeof(int));
+					binaryAudioWriter.Write(BitConverter.GetBytes(volout.WaveFormat.AverageBytesPerSecond ), 0, sizeof(int));
 					//AudioStream.Write(BitConverter.GetBytes(volout.WaveFormat.SampleRate), 0, sizeof(int));
 					//AudioStream.Write(BitConverter.GetBytes(volout.WaveFormat.AverageBytesPerSecond), 0, sizeof(int));
-					binaryAudioWriter.Write(output, 0, bytesread / 2);
+					binaryAudioWriter.Write(output, 0, bytesread) ;
 					binaryAudioWriter.Flush();
 				}
-				audiolengthmonitor = bytesread / 2;
+				audiolengthmonitor = bytesread ;
 			}
 		}
 		private void StartBackgroundWorker()

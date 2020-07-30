@@ -10,7 +10,7 @@ namespace CaptureStream
     class M0454VideoEncoder : iSEVideoEncoder
     {
 
-        public static int Threshold = 10;
+        public int Threshold = 10;
 
         byte[] buffer = new byte[0];
 
