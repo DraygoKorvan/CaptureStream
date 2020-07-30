@@ -212,7 +212,7 @@ namespace CaptureStream
 		public FrameWork DoEncode()
 		{
 
-			if (isKeyframe)
+			if (isKeyFrame)
 			{
 				outbuffer = encoder.Encode(outbuffer, stride, width, height, imageln);
 			}
@@ -230,7 +230,7 @@ namespace CaptureStream
 			result = new byte[imageln + sizeof(int) * 2 + sizeof(ushort) * 4];
 
 			int control = 0;
-			if (isKeyframe)
+			if (isKeyFrame)
 				control = 1;
 			Buffer.BlockCopy(BitConverter.GetBytes(control), 0, result, 0, sizeof(int));
 			Buffer.BlockCopy(BitConverter.GetBytes((ushort)stride), 0, result, sizeof(int), sizeof(ushort));

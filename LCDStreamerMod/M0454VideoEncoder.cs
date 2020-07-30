@@ -30,7 +30,7 @@ namespace CaptureStream
                 byte count = myFrame[i];
                 ushort myVal = BitConverter.ToUInt16(myFrame, i + 1);
 
-                if (flag && myVal == 0)
+                if (flag && myVal == 65535)
                 {
                     Buffer.BlockCopy(myPrevUnCompressedFrame, timesRun * 2, buffer, timesRun * 2, count * 2);
                 }

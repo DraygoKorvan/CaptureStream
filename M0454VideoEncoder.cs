@@ -43,7 +43,7 @@ namespace CaptureStream
                 //make a comparison to the other frame, 0 means use previous frame
                 if (Math.Abs(myOtherVal - myVal) <= Threshold)
                 {
-                    myVal = 0;
+                    myVal = 65535;
                 }
 
                 if (i != imageln - 2 && count < 255 && Math.Abs(myPrevVal - myVal) <= Threshold)
@@ -130,7 +130,7 @@ namespace CaptureStream
                 byte count = myFrame[i];
                 ushort myVal = BitConverter.ToUInt16(myFrame, i + 1);
 
-                if (flag && myVal == 0)
+                if (flag && myVal == 65535)
                 {
                     Buffer.BlockCopy(myPrevUnCompressedFrame, timesRun * 2, buffer, timesRun * 2, count * 2);
                 }

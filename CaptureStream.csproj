@@ -62,7 +62,6 @@
     </Compile>
     <Compile Include="FrameWork.cs" />
     <Compile Include="M0454VideoEncoder.cs" />
-    <Compile Include="MyBetterVideoEncoder.cs" />
     <Compile Include="NullVideoEncoder.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
