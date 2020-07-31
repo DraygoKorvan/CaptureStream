@@ -62,7 +62,7 @@ namespace LocalLCD
 			debugUI.Origin = new Vector2I(-340, 0);
 			debugUI.Width = 340;
 			debugUI.SetTextContent(debugText);
-			debugUI.Visible = true;
+			debugUI.Visible = false;
 			debugUI.Height = 9 * 13 + boxdef.Min.X;
 			debugUI.BackgroundColor = Color.White * 0.2f;
 

@@ -135,7 +135,7 @@ namespace LocalLCD
 			MyAPIGateway.Multiplayer.Players.GetPlayers(players);
 			foreach(IMyPlayer player in players)
 			{
-				if (player.SteamUserId != steamidexception)
+				if (player.SteamUserId != steamidexception && player.SteamUserId != MyAPIGateway.Multiplayer.MyId)
 					MyAPIGateway.Multiplayer.SendMessageTo(COMID, obj, player.SteamUserId);
 			}
 		}

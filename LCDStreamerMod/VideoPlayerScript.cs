@@ -44,15 +44,15 @@ namespace LocalLCD
 		internal void PlayAudio(byte[] audioframes, int size, int sampleRate)
 		{
 			samplerate = sampleRate;
-			buffersize = size;
+			buffersize = Math.Min(audioframes.Length, size); ;
 			havebuffer = true;
 			if (buffersize > soundBuffer.Length)
-				soundBuffer = new byte[soundBuffer.Length];
-			Buffer.BlockCopy(audioframes, 0, soundBuffer, 0, size);
+				soundBuffer = new byte[buffersize];
+			Buffer.BlockCopy(audioframes, 0, soundBuffer, 0, buffersize);
 			//MyLog.Default.WriteLine($"VideoPlayerScript PlayAudio {AudioEmitter != null}");
 			if (!AudioEmitter.IsPlaying && AudioEmitter != null)
 			{
-				AudioEmitter.PlaySound(audioframes, size, sampleRate, 1, 40);
+				AudioEmitter.PlaySound(audioframes, size, sampleRate, 1, 25);
 				havebuffer = false;
 			}
 				

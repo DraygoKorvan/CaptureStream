@@ -36,8 +36,13 @@ namespace LocalLCD
 			}
 			set
 			{
-				Changed_Channel(m_CurrentBuffer, value);
-				m_CurrentBuffer = value;
+				MyLog.Default.WriteLine($"set CurrentBuffer {value}");
+				if(m_CurrentBuffer != value)
+				{
+					Changed_Channel(m_CurrentBuffer, value);
+					m_CurrentBuffer = value;
+				}
+
 			}
 		}
 
@@ -91,6 +96,7 @@ namespace LocalLCD
 
 		private void Changed_Channel(ulong arg1, ulong arg2)
 		{
+			MyLog.Default.WriteLine($"Changed Channel {arg1} -> {arg2}");
 			MyAPIGateway.Utilities.ShowMessage("Player", $"Changed Channel {arg1} -> {arg2}");
 			if (arg1 > 1)
 				LCDWriterCore.instance.Unsubscribe(this, arg1);

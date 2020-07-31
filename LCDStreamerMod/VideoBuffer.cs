@@ -162,7 +162,7 @@ namespace LCDText2
 			ushort width = BitConverter.ToUInt16(obj, offset + sizeof(int) + sizeof(ushort) * 2);
 			ushort framerate = BitConverter.ToUInt16(obj, offset + sizeof(int) + sizeof(ushort) * 3);
 			int framesize = BitConverter.ToInt32(obj, offset + sizeof(int) + sizeof(ushort) * 4);
-			//MyLog.Default.WriteLine($"Packet Header: c {control} w {width} s {stride} h {height} f {framerate} fs {framesize}");
+			MyLog.Default.WriteLine($"Packet Header: c {control} w {width} s {stride} h {height} f {framerate} fs {framesize}");
 
 
 			if(stride * height * framerate > videoStride * videoHeight * videoFramerate)
@@ -221,7 +221,7 @@ namespace LCDText2
 		internal bool GetNextSecond(out byte[] audiobuffer, out int audiolen,  out byte[] videobuffer, out int videolen, out int sampleRate)
 		{
 			sampleRate = this.sampleRate;
-			//MyLog.Default.WriteLine($"VideoBuffer GetNextSecond audiosize {audiosize} videosize {videosize}");
+			MyLog.Default.WriteLine($"VideoBuffer GetNextSecond audiosize {audiosize} videosize {videosize}");
 			if (paused || audiosize <= 1 || videosize <= 1)
 			{
 				if (!paused && !closing)

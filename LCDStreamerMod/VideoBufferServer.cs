@@ -23,6 +23,7 @@ namespace LCDText2
 		private bool registered = false;
 		private bool online = false;
 		private bool isServer = false;
+		public bool isDedicated = false;
 		static VideoBufferServer instance;
 		Dictionary<ulong, VideoBuffer> videoBuffer = new Dictionary<ulong, VideoBuffer>();
 		public VideoBufferServer()
@@ -39,7 +40,7 @@ namespace LCDText2
 
 			online = !(MyAPIGateway.Session.OnlineMode == VRage.Game.MyOnlineModeEnum.OFFLINE);
 			isServer = MyAPIGateway.Multiplayer.IsServer || !online;
-
+			isDedicated = isServer && MyAPIGateway.Utilities.IsDedicated;
 			if (MyAPIGateway.Session.OnlineMode == VRage.Game.MyOnlineModeEnum.OFFLINE)
 				return;
 
@@ -71,11 +72,13 @@ namespace LCDText2
 			//MyLog.Default.WriteLineAndConsole("recievedMessageInternal " + length.ToString());
 			//MyLog.Default.WriteLine($"Value check {BitConverter.ToInt32(obj, offset)}");
 			//MyLog.Default.WriteLineAndConsole($"isServer {online} {isServer} {steamid == (MyAPIGateway.Multiplayer?.MyId ?? 0)}");
-			if (online && isServer && steamid == MyAPIGateway.Multiplayer.MyId)
+			if (online && isServer)
 			{
-				SendMessageToOthersExcept(obj, length,  type);
+				SendMessageToOthersExcept(obj, length,  type, steamid);
 			}
 			VideoBuffer buffer;
+			if (isDedicated)
+				return;
 			lock (videoBuffer)
 			{
 				
@@ -141,17 +144,12 @@ namespace LCDText2
 
 		private void RecieveVideoStream(byte[] video, int length)
 		{
-			//MyLog.Default.WriteLineAndConsole("RecieveVideoStream " + length.ToString()) ;
-			//MyAPIGateway.Utilities.ShowMessage("GotPacket", length.ToString());
+
 			LCDWriterCore.debugMonitor.RecieveVideoStream = length;
 
-			//length = EncodeImageToChar(video, length);
 
-			if (isServer)
-			{
-				recievedMessageInternal(video,   length, 2, MyAPIGateway.Multiplayer?.MyId ?? (ulong)0);
-				return;
-			}
+			recievedMessageInternal(video,   length, 2, MyAPIGateway.Multiplayer?.MyId ?? (ulong)0);
+
 			if (!online)
 				return;
 			if (!isServer)
@@ -164,7 +162,7 @@ namespace LCDText2
 				MyAPIGateway.Multiplayer.SendMessageToServer(videostreamcommand, message);
 			}
 		}
-		private void SendMessageToOthersExcept(byte[] obj, int length, ushort type)
+		private void SendMessageToOthersExcept(byte[] obj, int length, ushort type, ulong except)
 		{
 			//MyLog.Default.WriteLineAndConsole("SendMessageToOthersExcept");
 
@@ -176,7 +174,7 @@ namespace LCDText2
 
 			var packed = new byte[length];
 			Buffer.BlockCopy(obj, 0, packed, 0, length);
-			var header = new packetheader() { type = type, steamid = MyAPIGateway.Multiplayer.MyId , packed = packed };
+			var header = new packetheader() { type = type, steamid = except , packed = packed };
 			byte[] message = MyAPIGateway.Utilities.SerializeToBinary(header);
 					
 				//MyLog.Default.WriteLine($"header {header.type} {header.steamid}");
@@ -185,7 +183,7 @@ namespace LCDText2
 			foreach (IMyPlayer id in connectedidents)
 			{
 
-				if (id.SteamUserId == MyAPIGateway.Multiplayer.MyId)
+				if (id.SteamUserId == except)
 					continue;
 				//MyLog.Default.WriteLineAndConsole($"sendMessageTo  {id.SteamUserId}  {message.Length}" );
 				MyAPIGateway.Multiplayer.SendMessageTo(videostreamcommand, message, id.SteamUserId);
