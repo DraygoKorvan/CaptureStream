@@ -96,8 +96,6 @@ namespace CaptureStream
 						selected = i;
 					}
 					playbackDevices.Add(adddevice);
-
-
 				}
 			}
 
@@ -109,7 +107,6 @@ namespace CaptureStream
 			frameremainder = Stopwatch.Frequency % playbackframerate;
 			framerate = Stopwatch.Frequency / playbackframerate;
 
-			var buffer = new byte[16];
 
 			initAudioRecorder();
 

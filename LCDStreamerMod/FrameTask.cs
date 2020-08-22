@@ -1,4 +1,6 @@
-﻿using ParallelTasks;
+﻿using CaptureStream;
+using LCDText2;
+using ParallelTasks;
 using Sandbox.ModAPI;
 using System;
 using System.Collections.Generic;
@@ -9,49 +11,45 @@ using VRage.Utils;
 
 namespace LCDStreamerMod
 {
-	public class FrameTaskManger
+	public class FrameTask 
 	{
-		int framerate;
-		int videolength;
-		int audiolength;
-
-
-		string[] frames;
-		byte[] videodata;
-		byte[] audioframe;
 
 		public bool isComplete = false;
 
 		public bool quit = false;
 		public bool draining = false;
 
-		public string GetFrame(int frame)
+		iSEVideoCodec[] videoCodecs = new iSEVideoCodec[2];
+		iSEVideoCodec currentCodec;
+
+		public bool IsKeyFrame
 		{
-			if (quit)
-				return null;
-			return frames[frame];
+			get
+			{
+				return isKeyFrame;
+			}
+		}
+		public int Height
+		{
+			get
+			{
+				return height;
+			}
+		}
+		public int Stride
+		{
+			get
+			{
+				return stride;
+			}
 		}
 
-		public byte[] GetAudio(out int bytes)
+		public FrameTask()
 		{
-			bytes = audiolength;
-			return audioframe;
+			videoCodecs[0] = new M0424VideoEncoder();
+			videoCodecs[1] = new D8x8VideoCodec();
 		}
 
-
-		public void StartBackground(int framerate, byte[] video, int videolength, byte[] audio, int audiobytes)
-		{
-			quit = false;
-			draining = false;
-			isComplete = false;
-			this.framerate = framerate;
-			this.videodata = video;
-			this.videolength = videolength;
-			this.audioframe = audio;
-			this.audiolength = audiobytes;
-			var task = MyAPIGateway.Parallel.StartBackground(Queue, Complete);
-			
-		}
 
 		private void Complete()
 		{
@@ -61,63 +59,80 @@ namespace LCDStreamerMod
 
 		public void Queue()
 		{
-			try
-			{
 
-				if (frames == null || frames.Length < framerate)
-				{
-					//grow the cache. 
-					frames = new string[framerate];
-				}
-				int ptr = 0;
-				for (int i = 0; i < framerate; i++)
-				{
-
-					int control = BitConverter.ToInt32(videodata, ptr);
-					ushort stride = BitConverter.ToUInt16(videodata, ptr + sizeof(int));
-					ushort height = BitConverter.ToUInt16(videodata, ptr + sizeof(int) + sizeof(ushort));
-					if (control == 1)
-					{
-						quit = true;
-						return;
-					}
-					ptr += sizeof(int) + sizeof(ushort) * 2;
-
-
-					frames[i] = getString( ptr, stride, height);
-
-					ptr += stride * height;
-
-				}
-			}
-			catch (Exception ex)
-			{
-				MyLog.Default.WriteLine(ex);
-			}
-			isComplete = true;
-			MyLog.Default.WriteLine("Completed Renders");
 		}
 
-		char[] buffer = new char[1];
-		private string getString(int videoptr, int width, int height)
+		bool isKeyFrame = false;
+		int offset;
+		int encodedlength;
+		ushort stride;
+		ushort height;
+		ushort width;
+		byte[] source;
+		byte[] destination;
+		byte[] lastdecoded;
+		byte[] lastKeyframe;
+		int destinationoffset;
+		int returnint;
+		ParallelTasks.Task task;
+		Action<FrameTask, int> completionCallback;
+
+		internal void Prepare(byte[] source, int offset, int encodedlength, ushort stride, ushort height, ushort width, byte[] destination, int destinationoffset, int returnint, FrameControlFlags flags, Action<FrameTask, int> taskComplete)
 		{
-
-			int length = (width * height) / 2 + height;
-			MyLog.Default.WriteLine($"VideoController getString {length} {videoptr} {width} {height}");
-			if (buffer == null || buffer.Length < length)
-				buffer = new char[length];
-			int ptr = 0;
-			for (int y = 0; y < height; y++)
+			this.isComplete = false;
+			this.source = source;
+			this.offset = offset;
+			this.encodedlength = encodedlength;
+			this.stride = stride;
+			this.height = height;
+			this.width = width;
+			this.destination = destination;
+			this.destinationoffset = destinationoffset;
+			this.returnint = returnint;
+			if ((flags & FrameControlFlags.M0424Encoded) == FrameControlFlags.M0424Encoded)
 			{
-				for (int x = 0; x < width; x += 2)
-				{
-					buffer[ptr++] = (char)BitConverter.ToUInt16(videodata, videoptr + (((y * width) + x)));
-
-				}
-				buffer[ptr++] = '\n';
+				currentCodec = videoCodecs[0];
 			}
-			//MyLog.Default.WriteLine($"Charbuffer {length} {ptr}");
-			return new string(buffer, 0, length);
+			if ((flags & FrameControlFlags.D8x8Encoded) == FrameControlFlags.D8x8Encoded)
+			{
+				currentCodec = videoCodecs[1];
+			}
+			completionCallback = taskComplete;
+			if (flags.HasFlag(FrameControlFlags.IsKeyFrame))
+			{
+				isKeyFrame = true;
+			}
+			else
+			{
+				isKeyFrame = false;
+			}
+
+			
+		}
+
+		public void StartBackground(byte[] keyFrame = null)
+		{
+			lastKeyframe = keyFrame;
+			task = MyAPIGateway.Parallel.StartBackground(DoWork);
+		}
+
+		private void onComplete()
+		{
+			//MyLog.Default.WriteLine("onComplete");
+			completionCallback(this, returnint);
+		}
+
+		public void DoWork()
+		{
+			//MyLog.Default.WriteLine("Decoding");
+
+			lastdecoded = currentCodec.Decode(source, offset, lastKeyframe, stride, width, height);
+			Buffer.BlockCopy(lastdecoded, 0, destination, destinationoffset, lastdecoded.Length);//write
+			this.isComplete = true;
+
+			//MyLog.Default.WriteLine("Complete");
+			MyAPIGateway.Utilities.InvokeOnGameThread(onComplete);
+			
 		}
 	}
 }

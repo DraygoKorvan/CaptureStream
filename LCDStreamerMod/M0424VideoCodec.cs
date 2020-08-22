@@ -6,13 +6,21 @@ using System.Threading.Tasks;
 
 namespace CaptureStream
 {
-    class M0454VideoEncoder : iSEVideoEncoder
+    class M0424VideoEncoder : iSEVideoCodec
     {
 
-        //if your making a new instance per frame then does a buffer help?
-        public byte[] Decode(byte[] myFrame, byte[] myPrevUnCompressedFrame, int stride, int width, int height)
+        public FrameControlFlags EncodingFlag
         {
-            int frameSize = (width * height * 2);
+            get
+            {
+                return FrameControlFlags.M0424Encoded;
+            }
+        }
+
+        //if your making a new instance per frame then does a buffer help?
+        public byte[] Decode(byte[] myFrame, int encodedBytesOffset, byte[] myPrevUnCompressedFrame, int stride, int width, int height)
+        {
+            int frameSize = (stride * height);
             //I wasnt compressed so return the frame
             if (frameSize == myFrame.Length)
             {
@@ -25,7 +33,7 @@ namespace CaptureStream
 
             //whats faster division or a variable?
             int timesRun = 0;
-            for (int i = 0; i < myFrame.Length; i += 3)
+            for (int i = 0; i + 2 < myFrame.Length; i += 3)
             {
                 byte count = myFrame[i];
                 ushort myVal = BitConverter.ToUInt16(myFrame, i + 1);

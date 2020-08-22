@@ -7,14 +7,14 @@ using System.Threading.Tasks;
 
 namespace CaptureStream
 {
-    class M0454VideoEncoder : iSEVideoEncoder
+    class M0424VideoCodec : iSEVideoCodec
     {
 
         public int Threshold = 10;
 
         byte[] buffer = new byte[0];
 
-		int iSEVideoEncoder.Threshold
+		int iSEVideoCodec.Threshold
         {
             get
 			{
@@ -27,6 +27,14 @@ namespace CaptureStream
 			}
             
         }
+
+		public FrameControlFlags EncodingFlag
+		{
+            get
+			{
+                return FrameControlFlags.M0424Encoded;
+			}
+		}
 
 		public byte[] Encode(byte[] myFrame, byte[] myPrevUnCompressedFrame, int stride, int width, int height, int imageln, int keyframeln)
         {
@@ -124,7 +132,7 @@ namespace CaptureStream
 
 
         //if your making a new instance per frame then does a buffer help?
-        public byte[] Decode(byte[] myFrame, byte[] myPrevUnCompressedFrame, int stride, int width, int height)
+        public byte[] Decode(byte[] myFrame, int myFrameOffset, byte[] myPrevUnCompressedFrame, int stride, int width, int height)
         {
             int frameSize = (width * height * 2);
             //I wasnt compressed so return the frame
@@ -142,7 +150,7 @@ namespace CaptureStream
             for (int i = 0; i < myFrame.Length; i += 3)
             {
                 byte count = myFrame[i];
-                ushort myVal = BitConverter.ToUInt16(myFrame, i + 1);
+                ushort myVal = BitConverter.ToUInt16(myFrame, i + 1 + myFrameOffset);
 
                 if (flag && myVal == 65535)
                 {

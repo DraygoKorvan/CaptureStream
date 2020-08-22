@@ -23,7 +23,7 @@ namespace CaptureStream
 		private Bitmap source;
 		private Bitmap destination;
 
-		private iSEVideoEncoder encoder;
+		private iSEVideoCodec[] encoder = new iSEVideoCodec[2];
 
 		public int PosX
 		{
@@ -120,6 +120,7 @@ namespace CaptureStream
 		private bool running;
 		public bool isKeyFrame;
 
+
 		public byte[] outbuffer;
 		public byte[] keyFrame;
 		public int keyFrameln;
@@ -135,7 +136,8 @@ namespace CaptureStream
 
 		public FrameWork()
 		{
-			encoder = new M0454VideoEncoder();
+			encoder[0] = new M0424VideoCodec();
+			encoder[1] = new D8x8VideoCodec();
 		}
 
 		internal void Prepare(RecordingParameters recordingParemeters, bool isKeyFrame, int compression)
@@ -154,7 +156,7 @@ namespace CaptureStream
 			sMode = recordingParemeters.smoothingMode;
 			Format = recordingParemeters.pixelFormat;
 			compressionRate = compression;
-			encoder.Threshold = compression;
+			encoder[0].Threshold = compression;
 		}
 
 		public void GetScreenshot()
@@ -217,25 +219,27 @@ namespace CaptureStream
 
 			if (isKeyFrame)
 			{
-				outbuffer = encoder.Encode(outbuffer, stride, width, height, imageln);
+				outbuffer = encoder[1].Encode(outbuffer, stride, width, height, imageln);
 			}
 			else
 			{
-				outbuffer = encoder.Encode(outbuffer, keyFrame, stride, width, height, imageln, keyFrameln);
+				outbuffer = encoder[1].Encode(outbuffer, keyFrame, stride, width, height, imageln, keyFrameln);
 			}
 			imageln = outbuffer.Length;
 
 			return PackHeader();
 		}
 
+
+
 		public FrameWork PackHeader()
 		{
 			result = new byte[imageln + sizeof(int) * 2 + sizeof(ushort) * 4];
-
-			int control = 0;
+			var control = FrameControlFlags.None;
 			if (isKeyFrame)
-				control = 1;
-			Buffer.BlockCopy(BitConverter.GetBytes(control), 0, result, 0, sizeof(int));
+				control |= FrameControlFlags.IsKeyFrame;
+			control |= encoder[1].EncodingFlag;
+			Buffer.BlockCopy(BitConverter.GetBytes((uint)control), 0, result, 0, sizeof(uint));
 			Buffer.BlockCopy(BitConverter.GetBytes((ushort)stride), 0, result, sizeof(int), sizeof(ushort));
 			Buffer.BlockCopy(BitConverter.GetBytes((ushort)height), 0, result, sizeof(int) + sizeof(ushort), sizeof(ushort));
 			Buffer.BlockCopy(BitConverter.GetBytes((ushort)width), 0, result, sizeof(int) + sizeof(ushort) * 2, sizeof(ushort));

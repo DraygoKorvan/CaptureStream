@@ -40,5 +40,25 @@ namespace CaptureStream
 			smoothingMode = sMode;
 
 		}
+
+		public RecordingParameters(RecordingParameters copyFrom)
+		{
+			this.PosX = copyFrom.PosX;
+			this.PosY = copyFrom.PosY;
+			this.SizeX = copyFrom.SizeX;
+			this.SizeY = copyFrom.SizeY;
+			this.ResX = copyFrom.ResX;
+			this.ResY = copyFrom.ResY;
+			this.FrameRate = copyFrom.FrameRate;
+			this.running = copyFrom.running;
+			this.RecordingMs = copyFrom.RecordingMs;
+			this.audioBalance = copyFrom.audioBalance;
+			this.leftVolume = copyFrom.leftVolume;
+			this.rightVolume = copyFrom.rightVolume;
+			this.pixelFormat = copyFrom.pixelFormat;
+			this.interpolationMode = copyFrom.interpolationMode;
+			this.smoothingMode = copyFrom.smoothingMode;
+			this.compressionRate = copyFrom.compressionRate;
+		}
 	}
 }

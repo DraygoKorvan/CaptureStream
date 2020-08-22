@@ -142,12 +142,14 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="D8x8VideoCodec.cs" />
     <Compile Include="DebugMonitor.cs" />
+    <Compile Include="FrameTask.cs" />
     <Compile Include="HudAPIv2.cs" />
-    <Compile Include="iSEVideoEncoder.cs" />
+    <Compile Include="iSEVideoCodec.cs" />
     <Compile Include="LCDWriterComponent.cs" />
     <Compile Include="LCDWriterCore.cs" />
-    <Compile Include="M0454VideoEncoder.cs" />
+    <Compile Include="M0424VideoCodec.cs" />
     <Compile Include="VideoController.cs" />
     <Compile Include="VideoPlayerScript.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

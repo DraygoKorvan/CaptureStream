@@ -23,6 +23,7 @@ using VRage.ObjectBuilders;
 using VRage;
 using VRage.Utils;
 using IMyTextSurface = Sandbox.ModAPI.IMyTextSurface;
+using SpaceEngineers.Game.ModAPI.Ingame;
 
 namespace LocalLCD
 {
@@ -34,7 +35,7 @@ namespace LocalLCD
 		bool error = false;
 		IMyCubeGrid fake;
 		Sandbox.ModAPI.IMyTextPanel Parent;
-		//IMyTextSurface surface;
+
 		private List<IMySlimBlock> blocks = new List<IMySlimBlock>();
 
 		byte[] soundBuffer = new byte[1024];
@@ -49,13 +50,13 @@ namespace LocalLCD
 			if (buffersize > soundBuffer.Length)
 				soundBuffer = new byte[buffersize];
 			Buffer.BlockCopy(audioframes, 0, soundBuffer, 0, buffersize);
-			//MyLog.Default.WriteLine($"VideoPlayerScript PlayAudio {AudioEmitter != null}");
+
 			if (!AudioEmitter.IsPlaying && AudioEmitter != null)
 			{
 				AudioEmitter.PlaySound(audioframes, size, sampleRate, 1, 25);
 				havebuffer = false;
 			}
-				
+
 		}
 
 
@@ -99,8 +100,7 @@ namespace LocalLCD
 		{ 
 			if (fake != null)
 				return;
-			//WideLCDScreenVideoPlayer
-			//WideLCDScreenWithBattery
+
 			var prefab = MyDefinitionManager.Static.GetPrefabDefinition("WideLCDScreenWithBattery");
 			if (prefab.CubeGrids == null)
 			{
@@ -162,7 +162,6 @@ namespace LocalLCD
 							surface.Alignment = TextAlignment.CENTER;
 							surface.FontSize = fontsize;
 							surface.Font = "Mono Color";
-							//MyAPIGateway.Utilities.ShowMessage("found screen", surface.ToString());
 						}
 						else
 						{
@@ -193,14 +192,6 @@ namespace LocalLCD
 			{
 				AudioEmitter.StopSound(true);
 			}
-
-
-		}
-
-		private void AudioEmitter_StoppedPlaying(MyEntity3DSoundEmitter obj)
-		{
-
-
 		}
 
 		float fontsize = 0.072f;
@@ -224,13 +215,13 @@ namespace LocalLCD
 
 			if (fake == null)
 			{
-				//MyLog.Default.WriteLineAndConsole($"VideoPlayerScript InitFake");
+
 				InitFake();
 			}
 				
 			if(surface != null)
 			{
-				//MyLog.Default.WriteLineAndConsole($"VideoPlayerScript WriteText");
+
 				surface.WriteText(chars);
 			}
 		}
@@ -239,8 +230,7 @@ namespace LocalLCD
 
 		public void Close()
 		{
-			fake = null;
-			surface = null;
+			DeletePlayer();
 		}
 	}
 }

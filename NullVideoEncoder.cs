@@ -6,10 +6,17 @@ using System.Threading.Tasks;
 
 namespace CaptureStream
 {
-	public class NullVideoEncoder : iSEVideoEncoder
+	public class NullVideoEncoder : iSEVideoCodec
 	{
+		public FrameControlFlags EncodingFlag 
+		{
+			get
+			{
+				return FrameControlFlags.None;
+			}
+		}
 
-		int iSEVideoEncoder.Threshold
+		int iSEVideoCodec.Threshold
 		{
 			get
 			{
@@ -21,7 +28,7 @@ namespace CaptureStream
 			}
 
 		}
-		public byte[] Decode(byte[] encodedBytes, byte[] myPrevUnCompressedFrame, int stride, int width, int height)
+		public byte[] Decode(byte[] encodedBytes, int offset, byte[] myPrevUnCompressedFrame, int stride, int width, int height)
 		{
 			return encodedBytes;
 		}

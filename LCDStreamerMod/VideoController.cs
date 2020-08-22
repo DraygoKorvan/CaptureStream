@@ -24,7 +24,7 @@ namespace LocalLCD
 
 		List<LocalLCDWriterComponent> subscribers = new List<LocalLCDWriterComponent>();
 
-		iSEVideoEncoder decoder = new M0454VideoEncoder();
+		//iSEVideoEncoder decoder = new M0424VideoEncoder();
 
 		public VideoController(VideoBuffer videoBuffer)
 		{
@@ -119,37 +119,37 @@ namespace LocalLCD
 				ushort height = BitConverter.ToUInt16(videoframes, videoptr + sizeof(int) + sizeof(ushort));
 				ushort width = BitConverter.ToUInt16(videoframes, videoptr + sizeof(int) + sizeof(ushort) * 2);
 				ushort framerate = BitConverter.ToUInt16(videoframes, videoptr + sizeof(int) + sizeof(ushort) * 3);
-				int frameln = BitConverter.ToInt32(videoframes, videoptr + sizeof(int) + sizeof(ushort) * 4);
+				//int frameln = BitConverter.ToInt32(videoframes, videoptr + sizeof(int) + sizeof(ushort) * 4);
 				LCDWriterCore.debugMonitor.VideoByteLength = videoframes.Length;
 				LCDWriterCore.debugMonitor.VideoCharWidth = width;
 				LCDWriterCore.debugMonitor.VideoStride = stride;
 				LCDWriterCore.debugMonitor.VideoHeight = height;
-				LCDWriterCore.debugMonitor.FrameBytes = frameln;
+				//LCDWriterCore.debugMonitor.FrameBytes = frameln;
 				LCDWriterCore.debugMonitor.FrameRate = framerate;
 				if (framerate == 0)
 					framerate = 20;
 				nextVideoFrame += (tickspersecond / framerate);
 				//MyLog.Default.WriteLine($"Video Packet Header: c {control} s {stride} h {height} fs {frameln} srcln {videoframes.Length} ptr {videoptr}");
-				MyLog.Default.Flush();
-				videoptr += sizeof(int) * 2 + sizeof(ushort) * 4;
-				var frameDecoder = new byte[frameln];
+				//MyLog.Default.Flush();
+				videoptr += sizeof(int) * 1 + sizeof(ushort) * 4;
+				//var frameDecoder = new byte[frameln];
 				
-				Buffer.BlockCopy(videoframes, videoptr, frameDecoder, 0, frameln);
-				videoptr += frameln;
-				if (control == 1)
-				{
-					frameDecoder = decoder.Decode(frameDecoder, null, stride, width, height);
-					decodedKeyframe = frameDecoder;
-				}
-				else
-				{
-					frameDecoder = decoder.Decode(frameDecoder, decodedKeyframe, stride, width, height);
-				}
+				//Buffer.BlockCopy(videoframes, videoptr, frameDecoder, 0, frameln);
+				
+				//if (control == 1)
+				//{
+				//	frameDecoder = decoder.Decode(frameDecoder, null, stride, width, height);
+				//	decodedKeyframe = frameDecoder;
+				//}
+				//else
+				//{
+				//	frameDecoder = decoder.Decode(frameDecoder, decodedKeyframe, stride, width, height);
+				//}
 				
 
 				//var length = stride * height;
-				string s_frame = getString(frameDecoder, 0, width, stride, height);
-				
+				string s_frame = getString(videoframes, videoptr, width, stride, height);
+				videoptr += stride * height;
 				framecnt++;
 				//MyLog.Default.WriteLine($"Frame Counter {framecnt}");
 				//convert to string

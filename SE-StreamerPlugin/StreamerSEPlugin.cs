@@ -10,6 +10,7 @@ using System.IO.Pipes;
 using static CaptureStream.CaptureStreamForm;
 using VRage.Utils;
 using System.Diagnostics;
+using SpaceEngineers.Game;
 
 namespace SE_StreamerPlugin
 {
@@ -31,6 +32,8 @@ namespace SE_StreamerPlugin
 			CaptureStreamForm.ActiveForm?.Close();
 		}
 
+		public SpaceEngineersGame Game { get; private set; }
+
 		public void Init(object gameInstance)
 		{
 			mutex = new Mutex(true, appName, out bool createdNew);
@@ -39,6 +42,8 @@ namespace SE_StreamerPlugin
 			{
 				return;
 			}
+
+			Game = (SpaceEngineersGame)gameInstance;
 
 			process = Process.GetCurrentProcess();
 			mainthread = Thread.CurrentThread;

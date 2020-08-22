@@ -120,6 +120,11 @@ namespace LocalLCD
 				if (Script == null)
 					Script = new VideoPlayerScript(this.Entity as IMyTextPanel);
 			}
+			else
+			{
+				Script.Close();
+				Script = null;
+			}
 		}
 
 		internal void PlayAudio(byte[] audioframes, int bytes, int sampleRate)
@@ -303,6 +308,7 @@ namespace LocalLCD
 		{
 			foreach(var item in Obj)
 			{
+
 				obj.Add(item);
 			}
 		}

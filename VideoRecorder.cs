@@ -81,6 +81,7 @@ namespace CaptureStream
 	
 		}
 		int compression = 0;
+		RecordingParameters currentFrameParams;
 		private void Update()
 		{
 			timer.Start();
@@ -103,7 +104,7 @@ namespace CaptureStream
 						//workstack.Push(work);
 						Tasks.RemoveAt(0);
 					}
-					
+					continue;
 				}
 				if (!RecordingParemeters.running)
 				{
@@ -126,6 +127,7 @@ namespace CaptureStream
 				{
 					needframe = RecordingParemeters.running;
 					keyFrame = true;
+					currentFrameParams = new RecordingParameters(RecordingParemeters);//only change on keyframe. 
 					compression = RecordingParemeters.compressionRate;
 					frames = 0;
 					nextFrame = timer.ElapsedTicks + frametime;
@@ -148,10 +150,11 @@ namespace CaptureStream
 				{
 					p = new FrameWork();
 				}
-				p.Prepare(RecordingParemeters, keyFrame, compression);
+				p.Prepare(currentFrameParams, keyFrame, compression);
 				p.GetScreenshot();
 				var task = Task.Run(p.DoWork);
 				Tasks.Add(task);
+				
 			}
 			timer.Stop();
 			RaiseStoppedRecording();
