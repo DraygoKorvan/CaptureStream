@@ -4,9 +4,9 @@
 	public enum FrameControlFlags : uint
 	{
 		None = 0,
-		IsKeyFrame = 1,
-		M0424Encoded = 2, //001
-		D8x8Encoded = 4 //010
+		IsKeyFrame = 1, //0001
+		M0424Encoded = 2, //0010
+		D8x8Encoded = 4 //0100
 	}
 	public interface iSEVideoCodec
 	{

@@ -34,6 +34,7 @@ namespace CaptureStream
 		//public static ushort FLIP = 0b1_00000_00000_00000;
 		public byte[] Decode(byte[] encodedBytes, int encodedBytesOffset, byte[] myPrevUnCompressedFrame, int stride, int width, int height)
 		{
+			//MyLog.Default.WriteLine("D8x8Decode");
 			int uncompressedln = stride * height;
 			if (uncompressedln != buffer.Length)
 				buffer = new byte[uncompressedln];
@@ -47,6 +48,7 @@ namespace CaptureStream
 
 			for (int hptr = 0; hptr < hmax; hptr++)
 			{
+				//MyLog.Default.WriteLine("hptr " + hptr.ToString());
 				for (int wptr = 0; wptr < wmax; wptr++)
 				{
 					var ptr = hptr * 8 * stride + wptr * 16;
@@ -160,22 +162,6 @@ namespace CaptureStream
 							int x = 0;
 							for (; x + 3 < w; x += 4)
 							{
-
-								/*MyLog.Default.WriteLine((ptr + (y * stride) + x + 0).ToString() + "b: " + buffer[ptr + (y * stride) + x + 0].ToString());
-								MyLog.Default.WriteLine((ptr + (y * stride) + x + 1).ToString() + "b: " + buffer[ptr + (y * stride) + x + 1].ToString());
-								MyLog.Default.WriteLine((ptr + (y * stride) + x + 2).ToString() + "b: " + buffer[ptr + (y * stride) + x + 2].ToString());
-								MyLog.Default.WriteLine((ptr + (y * stride) + x + 3).ToString() + "b: " + buffer[ptr + (y * stride) + x + 3].ToString());
-
-								MyLog.Default.WriteLine((ptr + (y * stride) + x + 0).ToString() + "u: " + myPrevUnCompressedFrame[ptr + (y * stride) + x + 0].ToString());
-								MyLog.Default.WriteLine((ptr + (y * stride) + x + 1).ToString() + "u: " + myPrevUnCompressedFrame[ptr + (y * stride) + x + 1].ToString());
-								MyLog.Default.WriteLine((ptr + (y * stride) + x + 2).ToString() + "u: " + myPrevUnCompressedFrame[ptr + (y * stride) + x + 2].ToString());
-								MyLog.Default.WriteLine((ptr + (y * stride) + x + 3).ToString() + "u: " + myPrevUnCompressedFrame[ptr + (y * stride) + x + 3].ToString());
-
-								MyLog.Default.WriteLine((ptr + (y * stride) + x + 0).ToString() + ": " + (buffer[ptr + (y * stride) + x + 0] ^ myPrevUnCompressedFrame[ptr + (y * stride) + x + 0]).ToString());
-								MyLog.Default.WriteLine((ptr + (y * stride) + x + 1).ToString() + ": " + (buffer[ptr + (y * stride) + x + 1] ^ myPrevUnCompressedFrame[ptr + (y * stride) + x + 1]).ToString());
-								MyLog.Default.WriteLine((ptr + (y * stride) + x + 2).ToString() + ": " + (buffer[ptr + (y * stride) + x + 2] ^ myPrevUnCompressedFrame[ptr + (y * stride) + x + 2]).ToString());
-								MyLog.Default.WriteLine((ptr + (y * stride) + x + 3).ToString() + ": " + (buffer[ptr + (y * stride) + x + 3] ^ myPrevUnCompressedFrame[ptr + (y * stride) + x + 3]).ToString());
-								*/
 								buffer[ptr + (y * stride) + x + 0] ^= myPrevUnCompressedFrame[ptr + (y * stride) + x + 0];
 								buffer[ptr + (y * stride) + x + 1] ^= myPrevUnCompressedFrame[ptr + (y * stride) + x + 1];
 								buffer[ptr + (y * stride) + x + 2] ^= myPrevUnCompressedFrame[ptr + (y * stride) + x + 2];
@@ -183,19 +169,13 @@ namespace CaptureStream
 							}
 							for (; x < w; x += 1)
 							{
-								buffer[ptr + (y * stride) + x] = myPrevUnCompressedFrame[ptr + (y * stride) + x];
+								buffer[ptr + (y * stride) + x] ^= myPrevUnCompressedFrame[ptr + (y * stride) + x];
 							}
 						}
 					}
 				}
 			}
-			//for(int y = 0; y < height; y++)
-			//{
-			//	for(int x = 0; x < stride; x++)
-			//	{
-					//MyLog.Default.WriteLine(((y * stride) + x).ToString() + ": " + buffer[(y * stride) + x].ToString());
-			//	}
-			//}
+
 
 			return buffer;
 		}

@@ -75,6 +75,7 @@
 			this.label7 = new System.Windows.Forms.Label();
 			this.CompressionTextBox = new System.Windows.Forms.TextBox();
 			this.FileSaverBackground = new System.ComponentModel.BackgroundWorker();
+			this.CopyToClipboard = new System.Windows.Forms.Button();
 			((System.ComponentModel.ISupportInitialize)(this.Preview)).BeginInit();
 			this.SuspendLayout();
 			// 
@@ -214,7 +215,7 @@
 			// 
 			this.FrameTimeMonitor.AutoSize = true;
 			this.FrameTimeMonitor.ForeColor = System.Drawing.SystemColors.ControlText;
-			this.FrameTimeMonitor.Location = new System.Drawing.Point(51, 255);
+			this.FrameTimeMonitor.Location = new System.Drawing.Point(64, 255);
 			this.FrameTimeMonitor.Name = "FrameTimeMonitor";
 			this.FrameTimeMonitor.Size = new System.Drawing.Size(22, 13);
 			this.FrameTimeMonitor.TabIndex = 15;
@@ -438,7 +439,7 @@
 			// FrameMonitorText
 			// 
 			this.FrameMonitorText.AutoSize = true;
-			this.FrameMonitorText.Location = new System.Drawing.Point(89, 255);
+			this.FrameMonitorText.Location = new System.Drawing.Point(97, 255);
 			this.FrameMonitorText.Name = "FrameMonitorText";
 			this.FrameMonitorText.Size = new System.Drawing.Size(41, 13);
 			this.FrameMonitorText.TabIndex = 38;
@@ -453,6 +454,7 @@
 			this.toFileCheckbox.TabIndex = 39;
 			this.toFileCheckbox.Text = "to File:";
 			this.toFileCheckbox.UseVisualStyleBackColor = true;
+			this.toFileCheckbox.Visible = false;
 			this.toFileCheckbox.CheckedChanged += new System.EventHandler(this.CheckedtoFile);
 			// 
 			// saveVideoRecording
@@ -469,6 +471,7 @@
 			this.Save.TabIndex = 40;
 			this.Save.Text = "Save";
 			this.Save.UseVisualStyleBackColor = true;
+			this.Save.Visible = false;
 			this.Save.Click += new System.EventHandler(this.SaveFile);
 			// 
 			// SavingProgress
@@ -477,6 +480,7 @@
 			this.SavingProgress.Name = "SavingProgress";
 			this.SavingProgress.Size = new System.Drawing.Size(100, 23);
 			this.SavingProgress.TabIndex = 41;
+			this.SavingProgress.Visible = false;
 			// 
 			// label7
 			// 
@@ -503,12 +507,23 @@
 			this.FileSaverBackground.ProgressChanged += new System.ComponentModel.ProgressChangedEventHandler(this.FileSaverBackground_ProgressChanged);
 			this.FileSaverBackground.RunWorkerCompleted += new System.ComponentModel.RunWorkerCompletedEventHandler(this.FileSaverBackground_RunWorkerCompleted);
 			// 
+			// CopyToClipboard
+			// 
+			this.CopyToClipboard.Location = new System.Drawing.Point(161, 258);
+			this.CopyToClipboard.Name = "CopyToClipboard";
+			this.CopyToClipboard.Size = new System.Drawing.Size(154, 23);
+			this.CopyToClipboard.TabIndex = 44;
+			this.CopyToClipboard.Text = "Export Frame to Clipboard";
+			this.CopyToClipboard.UseVisualStyleBackColor = true;
+			this.CopyToClipboard.Click += new System.EventHandler(this.CopyToClipboard_Click);
+			// 
 			// CaptureStreamForm
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
 			this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
 			this.ClientSize = new System.Drawing.Size(567, 450);
+			this.Controls.Add(this.CopyToClipboard);
 			this.Controls.Add(this.CompressionTextBox);
 			this.Controls.Add(this.label7);
 			this.Controls.Add(this.SavingProgress);
@@ -610,6 +625,7 @@
 		private System.Windows.Forms.Label label7;
 		private System.Windows.Forms.TextBox CompressionTextBox;
 		private System.ComponentModel.BackgroundWorker FileSaverBackground;
+		private System.Windows.Forms.Button CopyToClipboard;
 	}
 }
 

@@ -1,5 +1,6 @@
 ﻿using NAudio.CoreAudioApi;
 using NAudio.Wave;
+using NAudio.Wave.Compression;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -27,8 +28,6 @@ namespace CaptureStream
 		public static AnonymousPipeServerStream VideoStream = new AnonymousPipeServerStream(PipeDirection.Out, HandleInheritability.Inheritable);
 		public static AnonymousPipeServerStream AudioStream = new AnonymousPipeServerStream(PipeDirection.Out, HandleInheritability.Inheritable);
 
-		
-
 		bool recording = false;
 
 		Bitmap bmppreview;
@@ -38,6 +37,10 @@ namespace CaptureStream
 		WaveFormat format = new AdpcmWaveFormat(44100, 2);
 
 		WaveFormat sourceFormat;
+		private BufferedWaveProvider sourceProvider;
+		private WaveFloatTo16Provider wfto16prov;
+		private StereoToMonoProvider16 monovolumeprovider;
+		private WaveFormatConversionProvider formatconv;
 		long framerate = 1;
 		int playbackframerate = 20;
 		long frameremainder = 0;
@@ -82,7 +85,7 @@ namespace CaptureStream
 			instance = this;
 			InitializeComponent();
 			int selected = 0;
-
+			
 			using (var enumerator = new MMDeviceEnumerator())
 			{
 				device = enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Console);
@@ -99,9 +102,13 @@ namespace CaptureStream
 				}
 			}
 
-			SetDefaultValues();
-			AudioDeviceChanger.SelectedIndex = selected;
+			//init audio stream
+			
+			//var AudioInput = 
 
+			SetDefaultValues();
+			//AudioDeviceChanger.SelectedIndex = selected;
+			
 			Timer = new Stopwatch();
 
 			frameremainder = Stopwatch.Frequency % playbackframerate;
@@ -126,12 +133,23 @@ namespace CaptureStream
 			dispatcherthread.Start();
 		}
 
+		byte[] lastframe;
+		int lastframestride;
+		int lastframewidth;
+		int lastframeheight;
 		private void Encoder_Data_Available(object sender, VideoEventArgs e)
 		{
 
 			frame++;
 			
 			framebytes = e.payload.outbytes;
+
+			lastframe = e.payload.uncompressedFrame;
+			lastframestride = e.payload.stride;
+			lastframeheight = e.payload.height;
+			lastframewidth = e.payload.width;
+
+
 			if (isConnected)
 			{
 				
@@ -163,6 +181,16 @@ namespace CaptureStream
 			}
 			audio = new WasapiLoopbackCapture(device);
 			sourceFormat = audio.WaveFormat;
+			if(sourceProvider == null)
+			{
+				sourceProvider = new BufferedWaveProvider(sourceFormat);
+				sourceProvider.ReadFully = false;
+				wfto16prov = new WaveFloatTo16Provider(sourceProvider);
+				monovolumeprovider = new StereoToMonoProvider16(wfto16prov);
+				formatconv = new WaveFormatConversionProvider(new WaveFormat(24000, 16, 1), monovolumeprovider);
+			}
+		
+
 			text_encoding.Text = sourceFormat.Encoding.ToString();
 			//var client = device.AudioClient.AudioRenderClient;
 			blankplayer = new WasapiOut(device, AudioClientShareMode.Shared, false, 0);
@@ -221,24 +249,7 @@ namespace CaptureStream
 				binaryAudioWriter.Dispose();
 			}
 		}
-		private byte[] StereoToMono(byte[] input)
-		{
-			byte[] output = new byte[input.Length / 2];
-			int outputIndex = 0;
-			float lmult = (1f - videorecordingsettings.audioBalance) * videorecordingsettings.leftVolume;
-			float rmult = (videorecordingsettings.audioBalance) * videorecordingsettings.rightVolume;
-			for (int n = 0; n < input.Length; n += 4)
-			{
-				// copy in the first 16 bit sample
-				float inputfirst = (float)((float)input[n] * lmult) + ((float)input[n + 2] * rmult);
-				float firstbyte = Math.Min(Math.Max(inputfirst, 0f), 255f);
-				float inputsecond = (float)((float)input[n + 1] * lmult) + ((float)input[n + 3] * rmult);
-				float secondbyte = Math.Min(Math.Max(inputsecond, 0f), 255f);
-				output[outputIndex++] = (byte)firstbyte;
-				output[outputIndex++] = (byte)secondbyte;
-			}
-			return output;
-		}
+
 		private void Audio_DataAvailable(object sender, WaveInEventArgs e)
 		{
 			if (e.BytesRecorded == 0)
@@ -246,32 +257,38 @@ namespace CaptureStream
 			var buffer = e.Buffer;
 			if (!recording)
 				return;
-			using (var str = new RawSourceWaveStream(buffer, 0, e.BytesRecorded, audio.WaveFormat))
-			{
-				var six = new WaveFloatTo16Provider(str);
+			sourceProvider.AddSamples(e.Buffer, 0, e.BytesRecorded);
+			//using (var str = new RawSourceWaveStream(buffer, 0, e.BytesRecorded, audio.WaveFormat))//need to preserve this?
+			//{
+				
+				
+				//var six = new WaveFloatTo16Provider(sourceProvider);
 				byte[] output = new byte[e.BytesRecorded / 2];
-				//byte[] newbuffer = new byte[e.BytesRecorded / 2];
-				//var bytesread = six.Read(newbuffer, 0, e.BytesRecorded);
-				var volout = new StereoToMonoProvider16(six);
-				volout.LeftVolume =  (1f - videorecordingsettings.audioBalance) * videorecordingsettings.leftVolume;
-				volout.RightVolume = (videorecordingsettings.audioBalance) * videorecordingsettings.rightVolume;
+
+			//var volout = new StereoToMonoProvider16(six);
+
+				monovolumeprovider.LeftVolume = (1f - videorecordingsettings.audioBalance) * videorecordingsettings.leftVolume * 2;
+				monovolumeprovider.RightVolume = (videorecordingsettings.audioBalance) * videorecordingsettings.rightVolume * 2;
+
+				//var formatconv = new WaveFormatConversionProvider(new WaveFormat(24000, 16, 1), volout);
+				
+
 				//byte[] output = new byte[bytesread / 2];
-				var bytesread = volout.Read(output, 0, e.BytesRecorded / 2);
-				//var output = StereoToMono(newbuffer);
+				var bytesread = formatconv.Read(output, 0, e.BytesRecorded);
+
 				int control = 0;
 				if(audioframe == 0)
 				{
 					control = 1;
 				}
 				audioframe++;
-				if(isConnected)
+
+				if (isConnected)
 				{
 					AudioStream.Write(BitConverter.GetBytes(control), 0, sizeof(int));
 					AudioStream.Write(BitConverter.GetBytes(bytesread ), 0, sizeof(int));
-					AudioStream.Write(BitConverter.GetBytes(volout.WaveFormat.SampleRate), 0, sizeof(int));
-					AudioStream.Write(BitConverter.GetBytes(volout.WaveFormat.AverageBytesPerSecond), 0, sizeof(int));
-					//AudioStream.Write(BitConverter.GetBytes(volout.WaveFormat.SampleRate), 0, sizeof(int));
-					//AudioStream.Write(BitConverter.GetBytes(volout.WaveFormat.AverageBytesPerSecond), 0, sizeof(int));
+					AudioStream.Write(BitConverter.GetBytes(formatconv.WaveFormat.SampleRate), 0, sizeof(int));//volout
+					AudioStream.Write(BitConverter.GetBytes(formatconv.WaveFormat.AverageBytesPerSecond), 0, sizeof(int));
 					AudioStream.Write(output, 0, bytesread);
 					AudioStream.Flush();
 					AudioStream.WaitForPipeDrain();
@@ -280,15 +297,15 @@ namespace CaptureStream
 				{
 					binaryAudioWriter.Write(BitConverter.GetBytes(control), 0, sizeof(int));
 					binaryAudioWriter.Write(BitConverter.GetBytes(bytesread), 0, sizeof(int));
-					binaryAudioWriter.Write(BitConverter.GetBytes(volout.WaveFormat.SampleRate), 0, sizeof(int));
-					binaryAudioWriter.Write(BitConverter.GetBytes(volout.WaveFormat.AverageBytesPerSecond ), 0, sizeof(int));
+					binaryAudioWriter.Write(BitConverter.GetBytes(formatconv.WaveFormat.SampleRate), 0, sizeof(int));
+					binaryAudioWriter.Write(BitConverter.GetBytes(formatconv.WaveFormat.AverageBytesPerSecond ), 0, sizeof(int));
 					//AudioStream.Write(BitConverter.GetBytes(volout.WaveFormat.SampleRate), 0, sizeof(int));
 					//AudioStream.Write(BitConverter.GetBytes(volout.WaveFormat.AverageBytesPerSecond), 0, sizeof(int));
 					binaryAudioWriter.Write(output, 0, bytesread) ;
 					binaryAudioWriter.Flush();
 				}
 				audiolengthmonitor = bytesread ;
-			}
+			//}
 		}
 		private void StartBackgroundWorker()
 		{
@@ -529,6 +546,7 @@ namespace CaptureStream
 		{
 			running = false;
 			recording = false;
+
 		}
 
 		private void FrameRate_Text_TextChanged(object sender, EventArgs e)
@@ -727,7 +745,7 @@ namespace CaptureStream
 
 			public FileSaveJob(string video, string audio, string outFileName)
 			{
-
+				
 				readVideoFile = new BinaryReader(new FileStream(video, FileMode.Open, FileAccess.Read));
 				readAudioFile = new BinaryReader(new FileStream(audio, FileMode.Open, FileAccess.Read));
 				totalLength =  readVideoFile.BaseStream.Length + readAudioFile.BaseStream.Length;
@@ -835,6 +853,118 @@ namespace CaptureStream
 			enableWriteToFile = toFileCheckbox.Checked;
 		}
 
+		private void CopyToClipboard_Click(object sender, EventArgs e)
+		{
+			if(!recording)
+			{
+				GetScreenShot();
+			}
+			if (lastframe != null)
+			{
+				Clipboard.SetText(getText(lastframe, lastframewidth, lastframestride, lastframeheight));
+			}
 
+		}
+
+		public void GetScreenShot()
+		{
+			var source = new Bitmap(videorecordingsettings.SizeX, videorecordingsettings.SizeY, PixelFormat.Format24bppRgb);
+			var	destination = new Bitmap(videorecordingsettings.ResX, videorecordingsettings.ResY, videorecordingsettings.pixelFormat);
+
+			using (Graphics g = Graphics.FromImage(source))
+			{
+				//g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+				g.CopyFromScreen(videorecordingsettings.PosX, videorecordingsettings.PosY, 0, 0, new Size(videorecordingsettings.SizeX, videorecordingsettings.SizeY));
+			}
+			using (Graphics cv = Graphics.FromImage(destination))
+			{
+				cv.SmoothingMode = videorecordingsettings.smoothingMode;
+				cv.InterpolationMode = videorecordingsettings.interpolationMode;
+				cv.CompositingMode = CompositingMode.SourceCopy;
+				cv.DrawImage(source, 0, 0, videorecordingsettings.ResX, videorecordingsettings.ResY);
+			}
+
+			BitmapData bmpData = destination.LockBits(new Rectangle(0, 0, videorecordingsettings.ResX, videorecordingsettings.ResY), ImageLockMode.ReadOnly, destination.PixelFormat);
+
+			IntPtr ptr = bmpData.Scan0;
+			lastframestride = Math.Abs(bmpData.Stride);
+			var imageln = lastframestride * bmpData.Height;
+			lastframe = new byte[imageln];
+
+			Marshal.Copy(ptr, lastframe, 0, imageln);
+
+			if (videorecordingsettings.pixelFormat == PixelFormat.Format24bppRgb)
+			{
+				imageln = ConvertTo16bpp(lastframe, lastframestride, bmpData.Width, bmpData.Height, out int newstride);
+				lastframestride = newstride;
+			}
+
+			lastframeheight = bmpData.Height;
+			lastframewidth = bmpData.Width;
+
+			destination.UnlockBits(bmpData);
+		}
+
+		byte[] encodingBuffer = new byte[0];
+		int ConvertTo16bpp(byte[] encodedFrame, int stride, int width, int height, out int newstride)
+		{
+			newstride = stride;
+			if (encodedFrame.Length < sizeof(int) + sizeof(ushort) * 2)
+				return encodedFrame.Length;
+
+
+			newstride = ((stride / 3) * 2);
+			newstride += (newstride % 4);
+
+			int encodedlength = newstride * height;
+
+			if (encodingBuffer.Length < encodedlength)
+			{
+				encodingBuffer = new byte[encodedlength];
+			}
+
+			for (int i = 0; i < height; i++)
+			{
+
+				int adjust = i * stride;
+
+				int encadjust = i * newstride;
+
+				for (int ii = 0, eii = 0; ii + 2 < stride; ii += 3, eii += 2)
+				{
+					byte r = encodedFrame[adjust + ii + 2];
+					byte g = encodedFrame[adjust + ii + 1];
+					byte b = encodedFrame[adjust + ii];
+					BitConverter.GetBytes(ColorToUShort(r, g, b)).CopyTo(encodingBuffer, encadjust + eii);
+				}
+			}
+			Buffer.BlockCopy(encodingBuffer, 0, encodedFrame, 0, encodedlength);
+			return encodedlength;
+		}
+		ushort ColorToUShort(byte r, byte g, byte b)
+		{
+			return (ushort)(((r >> 3) << 10) + ((g >> 3) << 5) + (b >> 3));
+		}
+
+
+		char[] charbuffer = new char[10];
+		private string getText(byte[] videoframe, int width, int stride, int height)
+		{
+
+			if (charbuffer.Length < width)
+				charbuffer = new char[width * height + height];
+			int ptr = 0;
+			for (int y = 0; y < height; y++)
+			{
+
+				var ystride = (y * stride);
+				for (int x = 0; x < width * 2; x += 2)
+				{
+					charbuffer[ptr++] = (char)((uint)0x3000 + BitConverter.ToUInt16(videoframe, ystride + x));
+				}
+				charbuffer[ptr++] = '\n';
+			}
+			return new string(charbuffer, 0, (width * height + height));
+		}
 	}
 }

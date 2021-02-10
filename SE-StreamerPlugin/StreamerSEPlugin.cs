@@ -67,8 +67,6 @@ namespace SE_StreamerPlugin
 
 			Application.EnableVisualStyles();
 			//Application.SetCompatibleTextRenderingDefault(false);
-			
-			//TODO: detect when form not found and exit
 
 			form = new CaptureStreamForm();
 			form.toggleMuteAudio += Form_toggleEnableAudio;

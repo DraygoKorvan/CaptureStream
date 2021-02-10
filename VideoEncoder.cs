@@ -88,7 +88,7 @@ namespace CaptureStream
 
 					if(work.isKeyFrame)
 					{
-						keyFrame = work.outbuffer;
+						keyFrame = work.uncompressedFrame;
 						keyFrameLn = work.imageln;
 						RunningTasks.Add(Task.Run(work.DoEncode));
 					}

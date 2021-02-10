@@ -122,12 +122,13 @@ namespace CaptureStream
 
 
 		public byte[] outbuffer;
+		public byte[] uncompressedFrame;
 		public byte[] keyFrame;
 		public int keyFrameln;
 		public int imageln;
-		private int stride;
-		private int width;
-		private int height;
+		public int stride;
+		public int width;
+		public int height;
 		private int compressionRate;
 
 		InterpolationMode iMode = InterpolationMode.Default;
@@ -192,13 +193,13 @@ namespace CaptureStream
 			IntPtr ptr = bmpData.Scan0;
 			stride = Math.Abs(bmpData.Stride);
 			imageln = stride * bmpData.Height;
-			outbuffer = new byte[imageln];
+			uncompressedFrame = new byte[imageln];
 
-			Marshal.Copy(ptr, outbuffer, 0, imageln);
+			Marshal.Copy(ptr, uncompressedFrame, 0, imageln);
 
 			if (format == PixelFormat.Format24bppRgb)
 			{
-				imageln = ConvertTo16bpp(outbuffer, stride, bmpData.Width, bmpData.Height, out int newstride);
+				imageln = ConvertTo16bpp(uncompressedFrame, stride, bmpData.Width, bmpData.Height, out int newstride);
 				stride = newstride;
 			}
 
@@ -213,18 +214,31 @@ namespace CaptureStream
 			framems /= 10000;
 			return this;
 		}
-
+		byte[][] buffers = new byte[2][];
+		int selectedencoder = 0;
 		public FrameWork DoEncode()
 		{
 
 			if (isKeyFrame)
 			{
-				outbuffer = encoder[1].Encode(outbuffer, stride, width, height, imageln);
+				//buffers[0] = encoder[0].Encode(uncompressedFrame, stride, width, height, imageln);
+				buffers[1] = encoder[1].Encode(uncompressedFrame, stride, width, height, imageln);
 			}
 			else
 			{
-				outbuffer = encoder[1].Encode(outbuffer, keyFrame, stride, width, height, imageln, keyFrameln);
+				//buffers[0] = encoder[0].Encode(uncompressedFrame, keyFrame, stride, width, height, imageln, keyFrameln);
+				buffers[1] = encoder[1].Encode(uncompressedFrame, keyFrame, stride, width, height, imageln, keyFrameln);
 			}
+			//if (buffers[0].Length < buffers[1].Length)
+			//{
+			//	outbuffer = buffers[0];
+			//	selectedencoder = 0;
+			//}
+			//else
+			//{
+				outbuffer = buffers[1];
+				selectedencoder = 1;
+			//}
 			imageln = outbuffer.Length;
 
 			return PackHeader();
@@ -238,7 +252,7 @@ namespace CaptureStream
 			var control = FrameControlFlags.None;
 			if (isKeyFrame)
 				control |= FrameControlFlags.IsKeyFrame;
-			control |= encoder[1].EncodingFlag;
+			control |= encoder[selectedencoder].EncodingFlag;
 			Buffer.BlockCopy(BitConverter.GetBytes((uint)control), 0, result, 0, sizeof(uint));
 			Buffer.BlockCopy(BitConverter.GetBytes((ushort)stride), 0, result, sizeof(int), sizeof(ushort));
 			Buffer.BlockCopy(BitConverter.GetBytes((ushort)height), 0, result, sizeof(int) + sizeof(ushort), sizeof(ushort));

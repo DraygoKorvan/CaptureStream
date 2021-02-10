@@ -18,6 +18,7 @@ using VRage.ModAPI;
 using Sandbox.ModAPI.Interfaces;
 using Sandbox.Game.EntityComponents;
 using LCDText2;
+using LCDStreamerMod;
 
 namespace LocalLCD
 {
@@ -47,7 +48,7 @@ namespace LocalLCD
 		}
 
 
-		public VideoPlayerScript Script;
+		//public VideoPlayerScript Script;
 		long Selected = -1;
 
 		private static IMyTerminalControlCombobox ComboListBox;
@@ -92,22 +93,40 @@ namespace LocalLCD
 
 				CreateTerminalControls();
 			}
+			//get all the panels
+
 		}
 
 		private void Changed_Channel(ulong arg1, ulong arg2)
 		{
 			MyLog.Default.WriteLine($"Changed Channel {arg1} -> {arg2}");
-			MyAPIGateway.Utilities.ShowMessage("Player", $"Changed Channel {arg1} -> {arg2}");
+			//MyAPIGateway.Utilities.ShowMessage("Player", $"Changed Channel {arg1} -> {arg2}");
 			if (arg1 > 1)
 				LCDWriterCore.instance.Unsubscribe(this, arg1);
 			if(arg2 > 1)
 			{
 				LCDWriterCore.instance.Subscribe(this, arg2);
-				if (Script == null)
-					Script = new VideoPlayerScript(this.Entity as IMyTextPanel);
+				//if (Script == null)
+				//	Script = new VideoPlayerScript(this.Entity as IMyTextPanel);
 			}
 
 			LCDWriterCore.instance.UpdateChannel(this, arg2, MyAPIGateway.Multiplayer?.MyId ?? 0);
+		}
+		public void Register(VideoPlayerTSS script)
+		{
+			lock(surfaces)
+			{
+				if(!surfaces.Contains(script))
+					surfaces.Add(script);
+			}
+		}
+		public void Unregister(VideoPlayerTSS script)
+		{
+			lock (surfaces)
+			{
+				if (surfaces.Contains(script))
+					surfaces.Remove(script);
+			}
 		}
 
 		internal void UpdateChannelInternal(ulong channel)
@@ -117,30 +136,35 @@ namespace LocalLCD
 			if (channel > 1)
 			{
 				LCDWriterCore.instance.Subscribe(this, channel);
-				if (Script == null)
-					Script = new VideoPlayerScript(this.Entity as IMyTextPanel);
+				//if (Script == null)
+				//	Script = new VideoPlayerScript(this.Entity as IMyTextPanel);
 			}
 			else
 			{
-				Script.Close();
-				Script = null;
+				//Script.Close();
+				//Script = null;
 			}
 		}
 
 		internal void PlayAudio(byte[] audioframes, int bytes, int sampleRate)
 		{
-
-			if(Script != null)
-				Script.PlayAudio(audioframes, bytes, sampleRate);
+			foreach (var surface in surfaces)
+			{
+				surface.PlayAudio(audioframes, bytes, sampleRate);
+			}
+			//if(Script != null)
+			//	Script.PlayAudio(audioframes, bytes, sampleRate);
 		}
-
+		List<VideoPlayerTSS> surfaces = new List<VideoPlayerTSS>();
 		public override void OnAddedToContainer()
 		{
 
 
 			TextPanel = Entity as IMyTextPanel;
 			this.NeedsUpdate |= VRage.ModAPI.MyEntityUpdateEnum.EACH_FRAME;
-			
+			var textprov = TextPanel as IMyTextSurfaceProvider;
+
+
 		}
 
 
@@ -165,17 +189,17 @@ namespace LocalLCD
 			}
 			if (Selected == 0)
 			{
-				if(Script != null)
-				{
-					Script.DeletePlayer();
-				}
+				//if(Script != null)
+				//{
+				//	Script.DeletePlayer();
+				//}
 				CurrentBuffer = 1;
 				return;
 			}
 			if(Selected < Obj.Count)
 			{
-				if(Script == null)
-					Script = new VideoPlayerScript(this.Entity as IMyTextPanel);
+				//if(Script == null)
+				//	Script = new VideoPlayerScript(this.Entity as IMyTextPanel);
 				ulong channel;
 				if(SteamIdGetter.TryGetValue(Selected, out channel))
 				{
@@ -187,31 +211,39 @@ namespace LocalLCD
         }
 		public override void UpdateAfterSimulation()
 		{
-			if(Script != null)
-				Script.Update();
-		}
-		internal void PlayNextFrame(string s_frame)
-		{
-			//MyLog.Default.WriteLineAndConsole($"LocalLCDWriterComponent PlayNextFrame- {Script != null}");
-			if (Script != null)
-				Script.PlayNextFrame(s_frame);
+			//if(Script != null)
+			//	Script.Update();
 		}
 
 		internal void SetFontSize(float width, float height)
 		{
-			if (Script != null)
-				Script.SetFontSize(width, height);
+			foreach(var surface in surfaces)
+			{
+				surface.SetFontSize(width, height);
+			}
+			//if (Script != null)
+			//	Script.SetFontSize(width, height);
 		}
 
 
 		internal void SetChannel(ulong currentChannel)
 		{
+
+
 			//network updates set this. 
 			//CurrentBuffer.Value = currentChannel;
 			TextPanel_ChannelChanged(this.Entity as IMyTerminalBlock);
         }
 
-
+		internal void PlayNextFrame(string[] data, int offset, int width, int stride, int height)
+		{
+			foreach (var surface in surfaces)
+			{
+				surface.PlayNextFrame(data, offset, width, stride, height);
+			}
+			//if (Script != null)
+			//	Script.PlayNextFrame(data, offset, width, stride, height);
+		}
 
 		public override void OnRemovedFromScene()
 		{
@@ -336,8 +368,8 @@ namespace LocalLCD
 			if (Selected > 0)
 				LCDWriterCore.instance.Unsubscribe(this, CurrentBuffer);
 			
-			if (Script != null)
-				Script.Close();
+			//if (Script != null)
+			//	Script.Close();
 		}
 	}
 }

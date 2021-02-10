@@ -21,22 +21,22 @@ namespace CaptureStream
         public byte[] Decode(byte[] myFrame, int encodedBytesOffset, byte[] myPrevUnCompressedFrame, int stride, int width, int height)
         {
             int frameSize = (stride * height);
-            //I wasnt compressed so return the frame
-            if (frameSize == myFrame.Length)
+            int compressedSize = BitConverter.ToInt32(myFrame, encodedBytesOffset);
+            byte[] buffer = new byte[frameSize];
+            if (frameSize == compressedSize)
             {
+                Buffer.BlockCopy(myFrame, encodedBytesOffset + sizeof(int), buffer, 0, compressedSize);
                 return myFrame;
             }
-
-            byte[] buffer = new byte[frameSize];
-
+            encodedBytesOffset += sizeof(int);
             bool flag = frameSize == (myPrevUnCompressedFrame?.Length ?? 0);
 
             //whats faster division or a variable?
             int timesRun = 0;
             for (int i = 0; i + 2 < myFrame.Length; i += 3)
             {
-                byte count = myFrame[i];
-                ushort myVal = BitConverter.ToUInt16(myFrame, i + 1);
+                byte count = myFrame[encodedBytesOffset + i];
+                ushort myVal = BitConverter.ToUInt16(myFrame, encodedBytesOffset + i + 1);
 
                 if (flag && myVal == 65535)
                 {

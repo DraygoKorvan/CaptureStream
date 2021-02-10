@@ -89,11 +89,11 @@ namespace LCDStreamerMod
 			this.destination = destination;
 			this.destinationoffset = destinationoffset;
 			this.returnint = returnint;
-			if ((flags & FrameControlFlags.M0424Encoded) == FrameControlFlags.M0424Encoded)
+			if (flags.HasFlag(videoCodecs[0].EncodingFlag))
 			{
 				currentCodec = videoCodecs[0];
 			}
-			if ((flags & FrameControlFlags.D8x8Encoded) == FrameControlFlags.D8x8Encoded)
+			if (flags.HasFlag(videoCodecs[1].EncodingFlag))
 			{
 				currentCodec = videoCodecs[1];
 			}
@@ -125,10 +125,16 @@ namespace LCDStreamerMod
 		public void DoWork()
 		{
 			//MyLog.Default.WriteLine("Decoding");
-
-			lastdecoded = currentCodec.Decode(source, offset, lastKeyframe, stride, width, height);
-			Buffer.BlockCopy(lastdecoded, 0, destination, destinationoffset, lastdecoded.Length);//write
-			this.isComplete = true;
+			try
+			{
+				lastdecoded = currentCodec.Decode(source, offset, lastKeyframe, stride, width, height);
+				Buffer.BlockCopy(lastdecoded, 0, destination, destinationoffset, lastdecoded.Length);//write
+				this.isComplete = true;
+			}
+			catch (Exception ex)
+			{
+				MyLog.Default.WriteLine(ex.ToString());
+			}
 
 			//MyLog.Default.WriteLine("Complete");
 			MyAPIGateway.Utilities.InvokeOnGameThread(onComplete);

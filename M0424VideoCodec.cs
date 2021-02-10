@@ -89,8 +89,9 @@ namespace CaptureStream
             }
 
 
-            byte[] returned = new byte[compressedSize];
-            Buffer.BlockCopy(buffer, 0, returned, 0, returned.Length);
+            byte[] returned = new byte[compressedSize + sizeof(int)];
+            Buffer.BlockCopy(BitConverter.GetBytes(stride * height), 0, buffer, 0, sizeof(int));
+            Buffer.BlockCopy(buffer, 0, returned, sizeof(int), returned.Length - sizeof(int));
             return returned;
         }
 
@@ -102,6 +103,7 @@ namespace CaptureStream
                 buffer = new byte[imageln];
             int compressedSize = 0;
             byte count = 1;
+
             ushort myPrevVal = BitConverter.ToUInt16(myFrame, 0);
             for (int i = 2; i < imageln; i += 2)
             {
@@ -125,8 +127,9 @@ namespace CaptureStream
                     }
                 }
             }
-            byte[] returned = new byte[compressedSize];
-            Buffer.BlockCopy(buffer, 0, returned, 0, returned.Length);
+            byte[] returned = new byte[compressedSize + sizeof(int)];
+            Buffer.BlockCopy(BitConverter.GetBytes(stride * height), 0, buffer, 0, sizeof(int));
+            Buffer.BlockCopy(buffer, 0, returned, sizeof(int), returned.Length - sizeof(int));
             return returned;
         }
 
@@ -141,12 +144,13 @@ namespace CaptureStream
                 return myFrame;
             }
 
-            byte[] buffer = new byte[frameSize];
+            byte[] buffer = new byte[frameSize + sizeof(int)];
 
             bool flag = frameSize == (myPrevUnCompressedFrame?.Length ?? 0);
 
             //whats faster division or a variable?
             int timesRun = 0;
+            
             for (int i = 0; i < myFrame.Length; i += 3)
             {
                 byte count = myFrame[i];
