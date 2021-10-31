@@ -142,6 +142,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="D4x4VideoCodec.cs" />
     <Compile Include="D8x8VideoCodec.cs" />
     <Compile Include="DebugMonitor.cs" />
     <Compile Include="FrameTask.cs" />

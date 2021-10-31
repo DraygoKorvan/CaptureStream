@@ -19,7 +19,7 @@ namespace LCDStreamerMod
 		public bool quit = false;
 		public bool draining = false;
 
-		iSEVideoCodec[] videoCodecs = new iSEVideoCodec[2];
+		iSEVideoCodec[] videoCodecs = new iSEVideoCodec[3];
 		iSEVideoCodec currentCodec;
 
 		public bool IsKeyFrame
@@ -48,6 +48,7 @@ namespace LCDStreamerMod
 		{
 			videoCodecs[0] = new M0424VideoEncoder();
 			videoCodecs[1] = new D8x8VideoCodec();
+			videoCodecs[2] = new D4x4VideoCodec();
 		}
 
 
@@ -96,6 +97,10 @@ namespace LCDStreamerMod
 			if (flags.HasFlag(videoCodecs[1].EncodingFlag))
 			{
 				currentCodec = videoCodecs[1];
+			}
+			if (flags.HasFlag(videoCodecs[2].EncodingFlag))
+			{
+				currentCodec = videoCodecs[2];
 			}
 			completionCallback = taskComplete;
 			if (flags.HasFlag(FrameControlFlags.IsKeyFrame))

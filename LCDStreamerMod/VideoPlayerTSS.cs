@@ -50,46 +50,50 @@ namespace LCDStreamerMod
 				m_screenAspectRatio = new Vector2(surface.SurfaceSize.X / surface.SurfaceSize.Y, 1f);
 		}
 
+
+
 		private void AudioEmitter_StoppedPlaying(MyEntity3DSoundEmitter obj)
 		{
-			if (havebuffer == true)
-			{
-				
-				AudioEmitter.PlaySound(soundBuffer, 1, 40);//buffersize, samplerate
-				havebuffer = false;
-			}
-
+			//if (havebuffer == true)
+			//{
+				//obj.Sound.
+			//	AudioEmitter.PlaySound(soundBuffer, 1, 40);//buffersize, samplerate
+			//	havebuffer = false;
+			//}
+		
 		}
 
 		public void PlayAudio(byte[] audioframes, int size, int sampleRate)
 		{
 			if (AudioEmitter == null)
 				return;
-			//MyAPIGateway.Utilities.ShowNotification($"PlayAudio {size} {audioframes[0]} {audioframes[1]} {audioframes[2]} {audioframes[3]}", 1000);
-			//samplerate = sampleRate;
-			//buffersize = Math.Min(audioframes.Length, size);
-			//if(AudioEmitter.IsPlaying)
+			//if(!havebuffer)
 			//{
-			//	havebuffer = true;
-			//	if (buffersize != soundBuffer.Length)
-			//		soundBuffer = new byte[buffersize];
-			//	Buffer.BlockCopy(audioframes, 0, soundBuffer, 0, buffersize);
+				//AudioEmitter.Sound.SubmitBuffer(audioframes);
+				//AudioEmitter.CustomVolume = 1;
+				//AudioEmitter.CustomMaxDistance = 40;
+				//if (!AudioEmitter.Sound.IsPlaying)
+				//	AudioEmitter.Sound.StartBuffered();
+				AudioEmitter.PlaySound(audioframes, 1, 40);//size, sampleRate, 
 			//}
 			//else
 			//{
-			//	havebuffer = false;
+			//	AudioEmitter.Sound.SubmitBuffer(audioframes);
+			//	soundBuffer = audioframes;
+			//	havebuffer = true;
+			//}
 			
-			AudioEmitter.PlaySound(audioframes, 1, 40, MySoundDimensions.D2);//size, sampleRate, 
+
 			//}
 		}
 		const float ADJ = 25f;
 		float m_FontSizeRatio = 1f;
-		List<MySprite> sprites = new List<MySprite>();
+		List<MySprite> m_Sprites = new List<MySprite>();
 		internal void PlayNextFrame(string[] strings, int offset, int width, int stride, int height)
 		{
 			if (m_Surface == null)
 				return;
-			sprites.Clear();
+			m_Sprites.Clear();
 			SetFontSize(width, height);
 			//var strings = getString(data, offset, width, stride, height);
 			var xcenter = m_Surface.SurfaceSize.X / 2f;
@@ -104,14 +108,14 @@ namespace LCDStreamerMod
 					RotationOrScale = 0.08f * m_FontSizeRatio
 				};
 				pos.Y += line.RotationOrScale * ADJ;
-				sprites.Add(line);
+				m_Sprites.Add(line);
 			}
 			//Following is Gwindalmir hax. 
-			if (sprites?.Count > 0)
+			if (m_Sprites.Count > 0)
 			{
 				//var comp = (panel.Render as MyRenderComponentScreenAreas);
 
-				(m_Panel.Render as MyRenderComponentScreenAreas)?.RenderSpritesToTexture(0, sprites,
+				(m_Panel.Render as MyRenderComponentScreenAreas)?.RenderSpritesToTexture(0, m_Sprites,
 					new Vector2I(m_Surface.TextureSize), m_screenAspectRatio, Color.Black, 0);
 			}
 

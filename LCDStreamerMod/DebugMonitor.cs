@@ -33,6 +33,11 @@ namespace LocalLCD
 		public ushort FrameRate { get; internal set; }
 		public int FrameBytes { get; internal set; }
 
+		public int VideoBufferSize { get; internal set; }
+		public int AudioBufferSize { get; internal set; }
+		public int AudioSampleRate { get; internal set; }
+		public int AudioAverageBytesPerSecond { get; internal set; }
+		public int AudioBytes { get; internal set; }
 		public bool Visible
 		{
 			get
@@ -49,6 +54,7 @@ namespace LocalLCD
 				}
 			}
 		}
+		const int LINEHEIGHT = 13;
 		public void Start(HudAPIv2 api)
 		{
 			debugText = new HUDMessage();
@@ -63,7 +69,7 @@ namespace LocalLCD
 			debugUI.Width = 340;
 			debugUI.SetTextContent(debugText);
 			debugUI.Visible = true;
-			debugUI.Height = 9 * 13 + boxdef.Min.X;
+			debugUI.Height = 12 * LINEHEIGHT + boxdef.Min.X;
 			debugUI.BackgroundColor = Color.White * 0.2f;
 
 
@@ -89,7 +95,9 @@ namespace LocalLCD
 			DebugString.AppendLine($"       {VideoCharWidth,10:N0} charwidth");
 			DebugString.AppendLine($"       {VideoHeight,10:N0} height");
 			DebugString.AppendLine($"       {FrameRate,10:N0} fps");
-
+			DebugString.AppendLine($" AudioBS: {AudioBufferSize} VideoBS: {VideoBufferSize}");
+			DebugString.AppendLine($" AudioABS: {AudioAverageBytesPerSecond} ASR: {AudioSampleRate}");
+			DebugString.AppendLine($" {AudioBytes} bytes");
 
 		}
 

@@ -11,6 +11,7 @@ using VRage;
 using VRage.Game.Components;
 using VRage.Game.ModAPI;
 using VRage.Utils;
+
 using static LCDText2.VideoBuffer;
 
 namespace LCDText2
@@ -18,8 +19,8 @@ namespace LCDText2
 	[MySessionComponentDescriptor(MyUpdateOrder.AfterSimulation)]
 	public class VideoBufferServer : MySessionComponentBase
 	{
-		readonly ushort videostreamcommand = 32901;
-		readonly long videostreamid = 20982309832902;
+		const ushort VIDEOSTREAMCMD = 32901;
+		const long VIDEOSTREAMID = 20982309832901;
 		private bool registered = false;
 		private bool online = false;
 		private bool isServer = false;
@@ -36,7 +37,7 @@ namespace LCDText2
 			if (MyAPIGateway.Utilities == null)
 				MyAPIGateway.Utilities = MyAPIUtilities.Static;
 			MyLog.Default.WriteLineAndConsole("Sending Registration Request to Plugin");
-			MyAPIGateway.Utilities.SendModMessage(20982309832901, new MyTuple<Action<byte[], int>, Action<byte[], int>, Action<int>>(RecieveAudioStream, RecieveVideoStream, RecieveControl));
+			MyAPIGateway.Utilities.SendModMessage(VIDEOSTREAMID, new MyTuple<Action<byte[], int>, Action<byte[], int>, Action<int>>(RecieveAudioStream, RecieveVideoStream, RecieveControl));
 
 			online = !(MyAPIGateway.Session.OnlineMode == VRage.Game.MyOnlineModeEnum.OFFLINE);
 			isServer = MyAPIGateway.Multiplayer.IsServer || !online;
@@ -46,13 +47,13 @@ namespace LCDText2
 
 			//var def = new packetheader() { steamid = 0, type = 0 };
 			registeredmessagehandler = true;
-			MyAPIGateway.Multiplayer.RegisterMessageHandler(videostreamcommand, RecievedMessage);
+			MyAPIGateway.Multiplayer.RegisterMessageHandler(VIDEOSTREAMCMD, RecievedMessage);
 		}
 
 		protected override void UnloadData()
 		{
 			if(registeredmessagehandler)
-			MyAPIGateway.Multiplayer.UnregisterMessageHandler(videostreamcommand, RecievedMessage);
+				MyAPIGateway.Multiplayer.UnregisterMessageHandler(VIDEOSTREAMCMD, RecievedMessage);
 			base.UnloadData();
 		}
 
@@ -77,11 +78,12 @@ namespace LCDText2
 				SendMessageToOthersExcept(obj, length,  type, steamid);
 			}
 			VideoBuffer buffer;
+
 			if (isDedicated)
 				return;
+
 			lock (videoBuffer)
 			{
-				
 				if (!videoBuffer.TryGetValue(steamid, out buffer))
 				{
 					MyAPIGateway.Utilities.ShowMessage("Creating Channel ", steamid.ToString());
@@ -95,11 +97,11 @@ namespace LCDText2
 					return;
 				case 1:
 					//MyLog.Default.WriteLineAndConsole("AddToAudioBuffer " + length.ToString());
-					buffer.AddToAudioBuffer(obj, length);
+					buffer?.AddToAudioBuffer(obj, length);
 					return;
 				case 2:
 					//MyLog.Default.WriteLineAndConsole("AddToVideoBuffer " + length.ToString());
-					buffer.AddToVideoBuffer(obj,  length);
+					buffer?.AddToVideoBuffer(obj,  length);
 					return;
 				default:
 					return;
@@ -113,6 +115,7 @@ namespace LCDText2
 			{
 				var message = MyAPIGateway.Utilities.SerializeFromBinary<packetheader>(obj);
 				//MyLog.Default.WriteLineAndConsole($"RecievedMessage packet {message.steamid} {message.type}");
+				
 				recievedMessageInternal(message.packed,  message.packed.Length, message.type, message.steamid);
 			}
 			catch (Exception ex)
@@ -135,7 +138,7 @@ namespace LCDText2
 				Buffer.BlockCopy(audio, 0, packed, 0, length);
 				var packet = new packetheader() { type = 1, steamid = MyAPIGateway.Multiplayer.MyId, packed = packed };
 				var message = MyAPIGateway.Utilities.SerializeToBinary(packet);
-				MyAPIGateway.Multiplayer.SendMessageToServer(videostreamcommand, message);
+				MyAPIGateway.Multiplayer.SendMessageToServer(VIDEOSTREAMCMD, message);
 			}
 
 		}
@@ -159,7 +162,7 @@ namespace LCDText2
 				var packet = new packetheader() { type = 2, steamid = MyAPIGateway.Multiplayer.MyId, packed = packed };
 				var message = MyAPIGateway.Utilities.SerializeToBinary(packet);
 
-				MyAPIGateway.Multiplayer.SendMessageToServer(videostreamcommand, message);
+				MyAPIGateway.Multiplayer.SendMessageToServer(VIDEOSTREAMCMD, message);
 			}
 		}
 		private void SendMessageToOthersExcept(byte[] obj, int length, ushort type, ulong except)
@@ -186,7 +189,7 @@ namespace LCDText2
 				if (id.SteamUserId == except)
 					continue;
 				//MyLog.Default.WriteLineAndConsole($"sendMessageTo  {id.SteamUserId}  {message.Length}" );
-				MyAPIGateway.Multiplayer.SendMessageTo(videostreamcommand, message, id.SteamUserId);
+				MyAPIGateway.Multiplayer.SendMessageTo(VIDEOSTREAMCMD, message, id.SteamUserId);
 			}
 
 		}
@@ -198,15 +201,15 @@ namespace LCDText2
 
 
 		int tick = 0;
-		private List<IMyPlayer> oldplayers = new List<IMyPlayer>();
+		//private List<IMyPlayer> oldplayers = new List<IMyPlayer>();
 		private List<IMyPlayer> idents = new List<IMyPlayer>();
 		
 		public override void UpdateAfterSimulation()
 		{
 			//need to get new clients. 
-			var swap = oldplayers;
-			oldplayers = idents;
-			idents = swap;
+			//var swap = oldplayers;
+			//oldplayers = idents;
+			//idents = swap;
 			idents.Clear();
 			MyAPIGateway.Multiplayer?.Players?.GetPlayers(idents);
 
@@ -214,13 +217,12 @@ namespace LCDText2
 			{
 				tick++;
 
-				if (tick == 60)
+				if (tick >= 60)
 				{
 					//MyLog.Default.WriteLineAndConsole("Sending Registration Request to Plugin");
-					MyAPIGateway.Utilities.SendModMessage(20982309832901, new MyTuple<Action<byte[], int>, Action<byte[], int>, Action<int>>(RecieveAudioStream, RecieveVideoStream, RecieveControl));
-				}
-				if (tick == 60)
+					MyAPIGateway.Utilities.SendModMessage(VIDEOSTREAMID, new MyTuple<Action<byte[], int>, Action<byte[], int>, Action<int>>(RecieveAudioStream, RecieveVideoStream, RecieveControl));
 					tick = 0;
+				}
 			}
 		}
 		enum ControlFlags : int

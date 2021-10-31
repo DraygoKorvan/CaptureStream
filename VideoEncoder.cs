@@ -76,7 +76,7 @@ namespace CaptureStream
 					}
 				}
 
-				if(workList.Count > 0)
+				while(workList.Count > 0)
 				{
 					FrameWork work;
 					lock(workList)
@@ -91,6 +91,7 @@ namespace CaptureStream
 						keyFrame = work.uncompressedFrame;
 						keyFrameLn = work.imageln;
 						RunningTasks.Add(Task.Run(work.DoEncode));
+						
 					}
 					else
 					{

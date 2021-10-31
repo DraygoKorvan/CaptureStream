@@ -26,6 +26,7 @@ namespace CaptureStream
 		public float leftVolume = 1.0f;
 		public float rightVolume = 1.0f;
 		public int compressionRate = 10;
+		public int sampleRate = 24000;//22050;
 
 		public RecordingParameters(int posX, int posY, int sizeX, int sizeY, int resX, int resY, int framerate, InterpolationMode iMode, SmoothingMode sMode)
 		{

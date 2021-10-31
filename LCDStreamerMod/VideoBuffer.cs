@@ -87,6 +87,9 @@ namespace LCDText2
 			int bytes = BitConverter.ToInt32(obj, sizeof(int));
 			int SampleRate = BitConverter.ToInt32(obj, sizeof(int) * 2);
 			int AverageBytesPerSecond = BitConverter.ToInt32(obj, sizeof(int) * 3);
+			LCDWriterCore.debugMonitor.AudioBytes = bytes;
+			LCDWriterCore.debugMonitor.AudioSampleRate = SampleRate;
+			LCDWriterCore.debugMonitor.AudioAverageBytesPerSecond = AverageBytesPerSecond;
 			int offset = sizeof(int) * 4;
 			length -= sizeof(int) * 4;
 			//MyLog.Default.WriteLine($"Add Data to Audio Buffer {offset} {bytes} {length} {AverageBytesPerSecond}");
@@ -115,22 +118,22 @@ namespace LCDText2
 					aptr[writeaudioposition] = 0;
 				}
 				//MyLog.Default.WriteLine($"Writing to {writeaudioposition} at {aptr[writeaudioposition]} row length {audioHeader.AverageBytesPerSecond} ");
-				if (aptr[writeaudioposition] + length < AverageBytesPerSecond)
+				if (aptr[writeaudioposition] + bytes <= AverageBytesPerSecond)
 				{
 					//MyLog.Default.WriteLine($"Single Write, do not advance");
-					Buffer.BlockCopy(obj, offset, audiostorage[writeaudioposition], aptr[writeaudioposition], length);
-					aptr[writeaudioposition] += length;
+					Buffer.BlockCopy(obj, offset, audiostorage[writeaudioposition], aptr[writeaudioposition], bytes);
+					aptr[writeaudioposition] += bytes;
 					//MyLog.Default.WriteLine($"new aptr {aptr[writeaudioposition]}");
 				}
 				else
 				{
 					//MyLog.Default.WriteLine($"Double Write, advance!");
 					int remainder = AverageBytesPerSecond - aptr[writeaudioposition];
-					
-					length -= remainder;
+
+					bytes -= remainder;
 					//MyLog.Default.WriteLine($"Write remainder {remainder} remaining length {length}");
 					Buffer.BlockCopy(obj, offset, audiostorage[writeaudioposition], aptr[writeaudioposition], remainder);
-					aptr[writeaudioposition] = AverageBytesPerSecond;
+					aptr[writeaudioposition] += remainder;
 					audiosize++;
 					
 					if (audiosize >= 9)
@@ -148,8 +151,8 @@ namespace LCDText2
 
 					aptr[writeaudioposition] = 0;
 					//MyLog.Default.WriteLine($"Write {length} at {writeaudioposition} aptr {aptr[writeaudioposition]}");
-					Buffer.BlockCopy(obj, offset, audiostorage[writeaudioposition], aptr[writeaudioposition], length);
-					aptr[writeaudioposition] += length;
+					Buffer.BlockCopy(obj, offset + remainder, audiostorage[writeaudioposition], aptr[writeaudioposition], bytes);
+					aptr[writeaudioposition] += bytes;
 					//MyLog.Default.WriteLine($"new aptr {aptr[writeaudioposition]}");
 				}
 			}
@@ -362,8 +365,11 @@ namespace LCDText2
 				videolen = 0;
 				return false;//wait
 			}
-			audiobuffer = audiostorage[audioposition];
 			audiolen = aptr[audioposition];
+			audiobuffer = new byte[audiolen];
+			Buffer.BlockCopy(audiostorage[audioposition], 0, audiobuffer, 0, audiolen);
+			//audiobuffer = audiostorage[audioposition];
+			
 			aptr[audioposition] = 0;
 			audioposition = (audioposition + 1) % 10;
 			audiosize--;
@@ -374,6 +380,8 @@ namespace LCDText2
 			videoposition = (videoposition + 1) % 10;
 			videosize--;
 			decodevideosize--;
+			LCDWriterCore.debugMonitor.VideoBufferSize = videosize;
+			LCDWriterCore.debugMonitor.AudioBufferSize = audiosize;
 			if (audiosize <= 1 || videosize <= 1)
 				paused = true;
 			return true;

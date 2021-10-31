@@ -6,7 +6,10 @@
 		None = 0,
 		IsKeyFrame = 1, //0001
 		M0424Encoded = 2, //0010
-		D8x8Encoded = 4 //0100
+		D8x8Encoded = 4, //0100
+		D4x4Encoded = 8, //1000
+
+		VideoFrame = 128 //1000 0000
 	}
 	public interface iSEVideoCodec
 	{

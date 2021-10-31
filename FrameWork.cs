@@ -23,7 +23,7 @@ namespace CaptureStream
 		private Bitmap source;
 		private Bitmap destination;
 
-		private iSEVideoCodec[] encoder = new iSEVideoCodec[2];
+		private iSEVideoCodec[] encoder = new iSEVideoCodec[3];
 
 		public int PosX
 		{
@@ -139,6 +139,7 @@ namespace CaptureStream
 		{
 			encoder[0] = new M0424VideoCodec();
 			encoder[1] = new D8x8VideoCodec();
+			encoder[2] = new D4x4VideoCodec();
 		}
 
 		internal void Prepare(RecordingParameters recordingParemeters, bool isKeyFrame, int compression)
@@ -214,7 +215,7 @@ namespace CaptureStream
 			framems /= 10000;
 			return this;
 		}
-		byte[][] buffers = new byte[2][];
+		byte[][] buffers = new byte[3][];
 		int selectedencoder = 0;
 		public FrameWork DoEncode()
 		{
@@ -223,11 +224,25 @@ namespace CaptureStream
 			{
 				//buffers[0] = encoder[0].Encode(uncompressedFrame, stride, width, height, imageln);
 				buffers[1] = encoder[1].Encode(uncompressedFrame, stride, width, height, imageln);
+				buffers[2] = encoder[2].Encode(uncompressedFrame, stride, width, height, imageln);
 			}
 			else
 			{
 				//buffers[0] = encoder[0].Encode(uncompressedFrame, keyFrame, stride, width, height, imageln, keyFrameln);
 				buffers[1] = encoder[1].Encode(uncompressedFrame, keyFrame, stride, width, height, imageln, keyFrameln);
+				buffers[2] = encoder[2].Encode(uncompressedFrame, keyFrame, stride, width, height, imageln, keyFrameln);
+			}
+			if(buffers[1].Length < buffers[2].Length)
+			{
+				outbuffer = buffers[1];
+				selectedencoder = 1;
+				imageln = buffers[1].Length;
+			}
+			else
+			{
+				outbuffer = buffers[2];
+				selectedencoder = 2;
+				imageln = buffers[2].Length;
 			}
 			//if (buffers[0].Length < buffers[1].Length)
 			//{
@@ -236,10 +251,10 @@ namespace CaptureStream
 			//}
 			//else
 			//{
-				outbuffer = buffers[1];
-				selectedencoder = 1;
+				//outbuffer = buffers[1];
+				//selectedencoder = 1;
 			//}
-			imageln = outbuffer.Length;
+			//imageln = outbuffer.Length;
 
 			return PackHeader();
 		}
@@ -249,7 +264,7 @@ namespace CaptureStream
 		public FrameWork PackHeader()
 		{
 			result = new byte[imageln + sizeof(int) * 2 + sizeof(ushort) * 4];
-			var control = FrameControlFlags.None;
+			var control = FrameControlFlags.VideoFrame;
 			if (isKeyFrame)
 				control |= FrameControlFlags.IsKeyFrame;
 			control |= encoder[selectedencoder].EncodingFlag;

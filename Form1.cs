@@ -13,6 +13,7 @@ using System.IO.Pipes;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
+using Size = System.Drawing.Size;
 
 namespace CaptureStream
 {
@@ -24,6 +25,9 @@ namespace CaptureStream
 		public static extern void ReleaseDC(IntPtr hwnd, IntPtr dc);
 
 		public readonly string SEDEFAULT = Environment.ExpandEnvironmentVariables(@"%appdata%\SpaceEngineers");
+
+		public const string TMPFILENAME = "vidfile.sevm";
+		public const string VIDEOLISTNAME = "Videos.txt";
 
 		public static AnonymousPipeServerStream VideoStream = new AnonymousPipeServerStream(PipeDirection.Out, HandleInheritability.Inheritable);
 		public static AnonymousPipeServerStream AudioStream = new AnonymousPipeServerStream(PipeDirection.Out, HandleInheritability.Inheritable);
@@ -62,9 +66,6 @@ namespace CaptureStream
 
 		AudioMeterInformation AudioMonitor;
 
-		private BinaryWriter binaryVideoWriter;
-		private BinaryWriter binaryAudioWriter;
-
 		public float leftChannelMonitor = 0f;
 		public float rightChannelMonitor = 0f;
 
@@ -79,6 +80,31 @@ namespace CaptureStream
 		public event EnableLocalAudioPlaybackHandler toggleMuteAudio;
 
 		public List<MMDevice> playbackDevices = new List<MMDevice>();
+
+		static class DisplayTools
+		{
+			[DllImport("gdi32.dll")]
+			static extern int GetDeviceCaps(IntPtr hdc, int nIndex);
+
+			private enum DeviceCap
+			{
+				Desktopvertres = 117,
+				Desktophorzres = 118
+			}
+
+			public static Size GetPhysicalDisplaySize()
+			{
+				Graphics g = Graphics.FromHwnd(IntPtr.Zero);
+				IntPtr desktop = g.GetHdc();
+
+				int physicalScreenHeight = GetDeviceCaps(desktop, (int)DeviceCap.Desktopvertres);
+				int physicalScreenWidth = GetDeviceCaps(desktop, (int)DeviceCap.Desktophorzres);
+
+				return new Size(physicalScreenWidth, physicalScreenHeight);
+			}
+
+
+		}
 
 		public CaptureStreamForm()
 		{
@@ -102,9 +128,11 @@ namespace CaptureStream
 				}
 			}
 
-			//init audio stream
+			var garbage = (int)System.Windows.SystemParameters.PrimaryScreenHeight; //dunno why but having this line here makes the next two lines give the physical width/height of the primary display. 
+			videorecordingsettings.SizeX = Screen.PrimaryScreen.Bounds.Width;
+			videorecordingsettings.SizeY = Screen.PrimaryScreen.Bounds.Height;
 			
-			//var AudioInput = 
+
 
 			SetDefaultValues();
 			//AudioDeviceChanger.SelectedIndex = selected;
@@ -148,7 +176,15 @@ namespace CaptureStream
 			lastframestride = e.payload.stride;
 			lastframeheight = e.payload.height;
 			lastframewidth = e.payload.width;
+			if(outFile != null)
+			{
+				lock(outFile)
+				{
+					outFile.Write(e.payload.result, 0, e.payload.outbytes);
+					outFile.Flush();
+				}
 
+			}
 
 			if (isConnected)
 			{
@@ -159,14 +195,11 @@ namespace CaptureStream
 
 				video.ReturnWork(e.payload);
 			}
-			if (enableWriteToFile && binaryVideoWriter != null)
-			{
-				binaryVideoWriter.Write(e.payload.result, 0, e.payload.outbytes);
-				binaryVideoWriter.Flush();
-			}
+	
 
 		}
-
+		//WaveFileWriter fileOut;
+		BinaryWriter outFile;
 		private void initAudioRecorder()
 		{
 			if(audio != null)
@@ -180,19 +213,37 @@ namespace CaptureStream
 				blankplayer.Dispose();
 			}
 			audio = new WasapiLoopbackCapture(device);
-			sourceFormat = audio.WaveFormat;
-			if(sourceProvider == null)
+			
+			
+			if(sourceProvider == null || sourceFormat != audio.WaveFormat)
 			{
+				sourceFormat = audio.WaveFormat;
+				sourceProvider = null;
+				monovolumeprovider = null;
+				wfto16prov = null;
+				formatconv?.Dispose();
+
 				sourceProvider = new BufferedWaveProvider(sourceFormat);
 				sourceProvider.ReadFully = false;
 				wfto16prov = new WaveFloatTo16Provider(sourceProvider);
+				
 				monovolumeprovider = new StereoToMonoProvider16(wfto16prov);
-				formatconv = new WaveFormatConversionProvider(new WaveFormat(24000, 16, 1), monovolumeprovider);
+				
+				formatconv = new WaveFormatConversionProvider(new WaveFormat(videorecordingsettings.sampleRate, 16, 1), monovolumeprovider); // was 24000...
+
+			}
+			if(formatconv.WaveFormat.SampleRate != videorecordingsettings.sampleRate)
+			{
+
+				formatconv.Dispose();
+				formatconv = new WaveFormatConversionProvider(new WaveFormat(videorecordingsettings.sampleRate, 16, 1), monovolumeprovider);//was mono provider
+
+				
 			}
 		
 
 			text_encoding.Text = sourceFormat.Encoding.ToString();
-			//var client = device.AudioClient.AudioRenderClient;
+
 			blankplayer = new WasapiOut(device, AudioClientShareMode.Shared, false, 0);
 			
 			silence = new SilenceProvider(sourceFormat).ToSampleProvider();
@@ -215,17 +266,13 @@ namespace CaptureStream
 
 		private void Video_Recording_Stopped(object sender, VideoStoppedArgs e)
 		{
-			if(isConnected)
+
+			if (isConnected)
 			{
 				VideoStream.Flush();
 				VideoStream.WaitForPipeDrain();
 			}
-			if(enableWriteToFile && binaryVideoWriter != null)
-			{
-				binaryVideoWriter.Flush();
-				binaryVideoWriter.Close();
-				binaryVideoWriter.Dispose();
-			}
+
 		}
 
 		public void Video_Data_Available(object sender, VideoEventArgs e)
@@ -242,12 +289,7 @@ namespace CaptureStream
 				AudioStream.Flush();
 				AudioStream.WaitForPipeDrain();
 			}
-			if(enableWriteToFile && binaryAudioWriter != null)
-			{
-				binaryAudioWriter.Flush();
-				binaryAudioWriter.Close();
-				binaryAudioWriter.Dispose();
-			}
+
 		}
 
 		private void Audio_DataAvailable(object sender, WaveInEventArgs e)
@@ -257,23 +299,20 @@ namespace CaptureStream
 			var buffer = e.Buffer;
 			if (!recording)
 				return;
+
 			sourceProvider.AddSamples(e.Buffer, 0, e.BytesRecorded);
-			//using (var str = new RawSourceWaveStream(buffer, 0, e.BytesRecorded, audio.WaveFormat))//need to preserve this?
-			//{
-				
-				
-				//var six = new WaveFloatTo16Provider(sourceProvider);
-				byte[] output = new byte[e.BytesRecorded / 2];
-
-			//var volout = new StereoToMonoProvider16(six);
-
-				monovolumeprovider.LeftVolume = (1f - videorecordingsettings.audioBalance) * videorecordingsettings.leftVolume * 2;
-				monovolumeprovider.RightVolume = (videorecordingsettings.audioBalance) * videorecordingsettings.rightVolume * 2;
-
-				//var formatconv = new WaveFormatConversionProvider(new WaveFormat(24000, 16, 1), volout);
+			var bps =  sourceProvider.WaveFormat.AverageBytesPerSecond;
 				
 
-				//byte[] output = new byte[bytesread / 2];
+			byte[] output = new byte[e.BytesRecorded];
+
+
+			monovolumeprovider.LeftVolume = (1f - videorecordingsettings.audioBalance) * videorecordingsettings.leftVolume * 2;
+			monovolumeprovider.RightVolume = (videorecordingsettings.audioBalance) * videorecordingsettings.rightVolume * 2;
+			
+
+
+				
 				var bytesread = formatconv.Read(output, 0, e.BytesRecorded);
 
 				int control = 0;
@@ -282,7 +321,20 @@ namespace CaptureStream
 					control = 1;
 				}
 				audioframe++;
-
+				if(outFile != null)
+				{
+					lock(outFile)
+					{
+					    
+						outFile.Write(BitConverter.GetBytes(control), 0, sizeof(int));
+						outFile.Write(BitConverter.GetBytes(bytesread), 0, sizeof(int));
+						outFile.Write(BitConverter.GetBytes(formatconv.WaveFormat.SampleRate), 0, sizeof(int));//volout
+				
+						outFile.Write(BitConverter.GetBytes(formatconv.WaveFormat.AverageBytesPerSecond), 0, sizeof(int));
+						outFile.Write(output, 0, bytesread);
+						outFile.Flush();
+					}
+				}
 				if (isConnected)
 				{
 					AudioStream.Write(BitConverter.GetBytes(control), 0, sizeof(int));
@@ -293,17 +345,7 @@ namespace CaptureStream
 					AudioStream.Flush();
 					AudioStream.WaitForPipeDrain();
 				}
-				if(enableWriteToFile && binaryAudioWriter != null)
-				{
-					binaryAudioWriter.Write(BitConverter.GetBytes(control), 0, sizeof(int));
-					binaryAudioWriter.Write(BitConverter.GetBytes(bytesread), 0, sizeof(int));
-					binaryAudioWriter.Write(BitConverter.GetBytes(formatconv.WaveFormat.SampleRate), 0, sizeof(int));
-					binaryAudioWriter.Write(BitConverter.GetBytes(formatconv.WaveFormat.AverageBytesPerSecond ), 0, sizeof(int));
-					//AudioStream.Write(BitConverter.GetBytes(volout.WaveFormat.SampleRate), 0, sizeof(int));
-					//AudioStream.Write(BitConverter.GetBytes(volout.WaveFormat.AverageBytesPerSecond), 0, sizeof(int));
-					binaryAudioWriter.Write(output, 0, bytesread) ;
-					binaryAudioWriter.Flush();
-				}
+
 				audiolengthmonitor = bytesread ;
 			//}
 		}
@@ -374,10 +416,15 @@ namespace CaptureStream
 						frame = 0;
 						if (enableWriteToFile)
 						{
-							binaryAudioWriter = new BinaryWriter(new FileStream(AUDIOFILECACHE, FileMode.Create, FileAccess.Write));
-							binaryVideoWriter = new BinaryWriter(new FileStream(VIDEOFILECACHE, FileMode.Create, FileAccess.Write));
+							outFile?.Flush();
+							outFile?.Dispose();
+							outFile = new BinaryWriter(new FileStream(TMPFILENAME, FileMode.Create, FileAccess.Write));
 						}
+
+
 						audio.StartRecording();
+						//if(fileOut == null)
+						//	fileOut = new WaveFileWriter("out.wav", formatconv.WaveFormat);
 						video.Start(videorecordingsettings);
 						encoder.Start(videorecordingsettings);
 
@@ -392,7 +439,9 @@ namespace CaptureStream
 						video.Stop();
 						encoder.Stop();
 						Timer.Stop();
-
+						outFile?.Flush();
+						outFile?.Dispose();
+						outFile = null;
 						audio.StopRecording();
 
 						blankplayer.Stop();
@@ -415,7 +464,7 @@ namespace CaptureStream
 			text_SizeX.Text = videorecordingsettings.SizeX.ToString();
 			text_SizeY.Text = videorecordingsettings.SizeY.ToString();
 			FrameRate_Text.Text = videorecordingsettings.FrameRate.ToString();
-			CompressionTextBox.Text = videorecordingsettings.compressionRate.ToString();
+			SampleRateTextBox.Text = videorecordingsettings.sampleRate.ToString();
 			
 			InterpolationMode interpolationMode = videorecordingsettings.interpolationMode;
 			SmoothingMode smoothingMode = videorecordingsettings.smoothingMode;
@@ -529,13 +578,23 @@ namespace CaptureStream
 			}
 		}
 
-		private void UpdateCompression(object sender, EventArgs e)
+		private void UpdateSampleRate(object sender, EventArgs e)
 		{
+			if (recording)
+			{
+				SampleRateTextBox.Text = videorecordingsettings.sampleRate.ToString();
+				return;
+			}
 			if (int.TryParse(((TextBox)sender).Text, out int newval))
 			{
-				if (newval >= 0)
+				if (newval >= 8000 && videorecordingsettings.sampleRate != newval)
 				{
-					videorecordingsettings.compressionRate = newval;
+					videorecordingsettings.sampleRate = newval;
+					initAudioRecorder();
+				}
+				else
+				{
+					//SampleRateTextBox.Text = videorecordingsettings.sampleRate.ToString();
 				}
 			}
 		}
@@ -586,7 +645,7 @@ namespace CaptureStream
 				{
 					gsc.SmoothingMode = videorecordingsettings.smoothingMode;
 					gsc.InterpolationMode = videorecordingsettings.interpolationMode;
-					gsc.CopyFromScreen(loc.Location, Point.Empty, loc.Size);
+					gsc.CopyFromScreen(loc.Location, System.Drawing.Point.Empty, loc.Size);
 				}
 				Thread.Sleep(0);
 			}
@@ -713,8 +772,8 @@ namespace CaptureStream
 			Save.Enabled = !recording;
 			toFileCheckbox.Enabled = !recording;
 		}
-		const string VIDEOFILECACHE = "videoCache";
-		const string AUDIOFILECACHE = "audioCache";
+		//const string VIDEOFILECACHE = "videoCache";
+		//const string AUDIOFILECACHE = "audioCache";
 
 		private void saveFileDialog_FileOk(object sender, CancelEventArgs e)
 		{
@@ -724,48 +783,49 @@ namespace CaptureStream
 
 			if (!FileSaverBackground.IsBusy)
 			{
-				var task = new FileSaveJob(VIDEOFILECACHE, AUDIOFILECACHE, saveVideoRecording.FileName);
+				var task = new FileSaveJob(TMPFILENAME, VIDEOLISTNAME, saveVideoRecording.FileName);
 				FileSaverBackground.RunWorkerAsync(task);
 			}
 			
 		}
 		public class FileSaveJob
 		{
-			BinaryReader readVideoFile;
-			BinaryReader readAudioFile;
+			BinaryReader inFile;
 			BinaryWriter outFile;
+			StreamWriter videoListFile;
 
+			public bool process;
 
-			public bool processvideo;
-			public bool processAudio;
 			public bool complete;
 
 			double totalLength;
 
 
-			public FileSaveJob(string video, string audio, string outFileName)
+			public FileSaveJob(string video, string videolistname, string outFileName)
 			{
-				
-				readVideoFile = new BinaryReader(new FileStream(video, FileMode.Open, FileAccess.Read));
-				readAudioFile = new BinaryReader(new FileStream(audio, FileMode.Open, FileAccess.Read));
-				totalLength =  readVideoFile.BaseStream.Length + readAudioFile.BaseStream.Length;
+
+				inFile = new BinaryReader(new FileStream(video, FileMode.Open, FileAccess.Read));
+				//readAudioFile = new BinaryReader(new FileStream(audio, FileMode.Open, FileAccess.Read));
+				totalLength = inFile.BaseStream.Length;
+				//FilePath.
 				outFile = new BinaryWriter(new FileStream(outFileName, FileMode.Create, FileAccess.Write));
+				var dir = Path.GetDirectoryName(outFileName);
+				using (videoListFile = File.AppendText($"{dir}\\{videolistname}"))
+				{
+					
+					videoListFile.WriteLine(Path.GetFileName(outFileName));
+				}	
 				complete = false;
-				processAudio = true;
-				processvideo = true;
+				process = true;
+
 			}
 
 			public int DoWork()
 			{
-				if(processvideo)
+				if(process)
 				{
 
 					return DoVideoCopy();
-				}
-				else if (processAudio)
-				{
-
-					return DoAudioCopy();
 				}
 				else
 				{
@@ -787,32 +847,20 @@ namespace CaptureStream
 			long audiobytesread = 0;
 			private int DoVideoCopy()
 			{
-				var videoread = readVideoFile.Read(readbuffer, 0, READCHUNK);
+				var videoread = inFile.Read(readbuffer, 0, READCHUNK);
 				videobytesread += videoread;
 				outFile.Write(readbuffer, 0, videoread);
-				if (readVideoFile.BaseStream.Position == readVideoFile.BaseStream.Length)
+				if (inFile.BaseStream.Position == inFile.BaseStream.Length)
 				{
 					outFile.Write(2);//eof byte
-					processvideo = false;
-					readVideoFile.Close();
-					readVideoFile.Dispose();
+					process = false;
+					inFile.Close();
+					inFile.Dispose();
 				}
 				return (int)((videobytesread * 100L) / totalLength);
 			}
 
-			private int DoAudioCopy()
-			{
-				var audioread = readAudioFile.Read(readbuffer, 0, READCHUNK);
-				audiobytesread += audioread;
-				outFile.Write(readbuffer, 0, audioread);
-				if (readAudioFile.BaseStream.Position == readAudioFile.BaseStream.Length)
-				{
-					processAudio = false;
-					readAudioFile.Close();
-					readAudioFile.Dispose();
-				}
-				return (int)(((videobytesread + audiobytesread) * 100L) / totalLength);
-			}
+
 
 		}
 		private void SaveFile(object sender, EventArgs e)
@@ -846,7 +894,7 @@ namespace CaptureStream
 			}
 		}
 
-		bool enableWriteToFile = false;
+		bool enableWriteToFile = true;
 
 		private void CheckedtoFile(object sender, EventArgs e)
 		{
